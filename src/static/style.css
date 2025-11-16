@@ -1,10 +1,195 @@
-body { background: #f7f9fa; font-family: 'Helvetica Neue', Arial, sans-serif; }
-nav { background:#fff; box-shadow:0 2px 8px #eee; padding:10px;}
-.nav-item { margin-right:20px; color: #333; text-decoration: none;}
-h1 { color: #333; font-size: 1.5em; margin: 20px 0;}
-input, select, button { margin:8px 0; padding:8px; border:1px solid #ddd; border-radius:4px;}
-button { background:#4CAF50; color:#fff; border:none;}
-button:hover { background:#388E3C;}
-section { background: #fff; margin: 20px 0; padding: 20px; border-radius:8px; box-shadow: 0 1px 4px #eee; }
-.login-container { max-width:400px; margin:80px auto; background: #fff; padding:40px; border-radius:8px; box-shadow:0 2px 8px #eee; }
-.error { color: red; margin-bottom:10px; }
+/* --- 全局与基础样式 --- */
+:root {
+  --primary-color: #007bff;
+  --primary-hover: #0056b3;
+  --danger-color: #dc3545;
+  --danger-hover: #c82333;
+  --secondary-color: #6c757d;
+  --secondary-hover: #5a6268;
+  --success-color: #28a745;
+  --background-color: #f8f9fa;
+  --card-bg: #ffffff;
+  --text-color: #343a40;
+  --border-color: #dee2e6;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --border-radius: 8px;
+}
+
+body {
+  background-color: var(--background-color);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text-color);
+  margin: 0;
+  padding: 2rem 1rem;
+}
+
+/* --- 容器与卡片布局 --- */
+.container, .login-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+}
+
+.login-container {
+  max-width: 420px;
+  margin-top: 5rem;
+}
+
+.group-card {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: box-shadow 0.2s ease-in-out;
+}
+.group-card:hover {
+  box-shadow: var(--shadow);
+}
+
+/* --- 标题与文本 --- */
+h2 {
+  color: var(--text-color);
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.error-msg, .error {
+  color: var(--danger-color);
+  font-size: 0.9em;
+  margin-top: 0.5rem;
+  display: block;
+}
+
+.success-msg {
+  color: var(--success-color);
+  font-size: 0.9em;
+  margin-top: 0.5rem;
+  display: block;
+}
+
+
+/* --- 按钮样式 --- */
+.btn {
+  display: inline-block;
+  font-weight: 500;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  background-color: transparent;
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+  color: #fff;
+}
+
+.btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); }
+.btn-primary:hover { background-color: var(--primary-hover); border-color: var(--primary-hover); }
+
+.btn-secondary { background-color: var(--secondary-color); border-color: var(--secondary-color); }
+.btn-secondary:hover { background-color: var(--secondary-hover); border-color: var(--secondary-hover); }
+
+.btn-danger { background-color: var(--danger-color); border-color: var(--danger-color); }
+.btn-danger:hover { background-color: var(--danger-hover); border-color: var(--danger-hover); }
+
+.btn-small { padding: 0.25rem 0.75rem; font-size: 0.875rem; }
+
+button:disabled, .btn[disabled] { background-color: #ccc; border-color: #ccc; cursor: not-allowed; }
+
+/* --- 表单元素 --- */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+input[type="text"], input[type="password"], select {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-color);
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="text"]:focus, input[type="password"]:focus, select:focus {
+  border-color: var(--primary-color);
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+select[multiple] {
+  height: auto;
+  min-height: 100px;
+}
+
+/* --- 功能类 --- */
+.flush-right { text-align: right; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.keyword-row, .token-row { display: flex; gap: 10px; align-items: center; margin-bottom: 0.75rem; }
+.keyword-row input { flex: 1; }
+
+/* --- 模态框 (Modal) --- */
+.modal-mask {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.modal-mask.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  max-width: 600px;
+  width: 95vw;
+  padding: 2rem;
+  position: relative;
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+.modal-mask.active .modal {
+  transform: scale(1);
+}
+
+.modal h2 { margin-bottom: 1rem; }
+.modal .close {
+  position: absolute; right: 1rem; top: 1rem;
+  font-size: 1.5rem; cursor: pointer; color: #888;
+  border: none; background: none; padding: 0;
+}
+.modal .close:hover { color: #333; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
