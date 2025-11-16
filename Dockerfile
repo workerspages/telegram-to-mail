@@ -6,7 +6,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制源代码
 COPY ./src/ .
-# ★★★ 新增：将默认配置复制到一个专门的模板位置 ★★★
 COPY ./src/config.json /app/config.json.default
 
 # 复制并授权启动脚本
