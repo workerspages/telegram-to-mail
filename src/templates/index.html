@@ -45,7 +45,11 @@
           <div class="form-group"><label for="msmtp_from">From Address</label><input id="msmtp_from"></div>
         </div>
         <div class="notifier-section">
-          <h4>Bark Tokens</h4>
+          <h4>Bark</h4>
+          <div class="form-group">
+            <label for="bark_server_url">服务器地址 (留空则使用公共服务器)</label>
+            <input id="bark_server_url" placeholder="例如: https://bark.yourdomain.com">
+          </div>
           <div id="barkTokenList"></div>
           <button type="button" class="btn btn-secondary btn-small" onclick="addGlobalToken('bark')">添加 Bark Token</button>
         </div>
@@ -128,11 +132,12 @@ function toggleGroup(idx) {
 // ---------- 全局函数 ----------
 function getAvailableNotifiers() {
     let options = [{ id: 'email', name: 'Email' }];
-    ['bark', 'pushplus'].forEach(key => {
-        if (configData.notifiers[key]) {
-            configData.notifiers[key].forEach(n => options.push({ id: n.id, name: `${pushTypes[key]}-${n.id}` }));
-        }
-    });
+    if (configData.notifiers.bark && configData.notifiers.bark.tokens) {
+        configData.notifiers.bark.tokens.forEach(n => options.push({ id: n.id, name: `${pushTypes.bark}-${n.id}` }));
+    }
+    if (configData.notifiers.pushplus) {
+        configData.notifiers.pushplus.forEach(n => options.push({ id: n.id, name: `${pushTypes.pushplus}-${n.id}` }));
+    }
     return options;
 }
 
@@ -156,38 +161,66 @@ function closeAddGroupModal(){ document.getElementById('addGroupModalMask').clas
 // ---------- 推送通道弹窗渲染 ----------
 function renderNotifierModal(){
   let n = configData.notifiers;
+  // Email
   document.getElementById('msmtp_host').value = n.email.msmtp_host||'';
   document.getElementById('msmtp_port').value = n.email.msmtp_port||'';
   document.getElementById('msmtp_user').value = n.email.msmtp_user||'';
   document.getElementById('msmtp_pass').value = n.email.msmtp_pass||'';
   document.getElementById('msmtp_from').value = n.email.msmtp_from||'';
 
-  const renderTokenList = (type, containerId) => {
-    const listContainer = document.getElementById(containerId);
-    listContainer.innerHTML = (n[type] || []).map((t, idx) => `
-      <div class="token-row">
-        <input type="text" value="${t.token}" placeholder="输入Token" onchange="updateGlobalToken('${type}', ${idx}, this.value)">
-        <span class="id-tag">ID: ${t.id}</span>
-        <button type="button" class="btn-icon" onclick="removeGlobalToken('${type}', ${idx})" title="删除Token">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        </button>
-      </div>`).join('');
-  };
-  renderTokenList('bark', 'barkTokenList');
-  renderTokenList('pushplus', 'pushTokenList');
+  // Bark
+  const barkConfig = n.bark || { server_url: '', tokens: [] };
+  document.getElementById('bark_server_url').value = barkConfig.server_url || '';
+  const barkTokenContainer = document.getElementById('barkTokenList');
+  barkTokenContainer.innerHTML = (barkConfig.tokens || []).map((t, idx) => `
+    <div class="token-row">
+      <input type="text" value="${t.token}" placeholder="输入 Bark Key" onchange="updateGlobalToken('bark', ${idx}, this.value)">
+      <span class="id-tag">ID: ${t.id}</span>
+      <button type="button" class="btn-icon" onclick="removeGlobalToken('bark', ${idx})" title="删除Token">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
+    </div>`).join('');
+
+  // Pushplus
+  const pushplusTokenContainer = document.getElementById('pushTokenList');
+  pushplusTokenContainer.innerHTML = (n.pushplus || []).map((t, idx) => `
+    <div class="token-row">
+      <input type="text" value="${t.token}" placeholder="输入 Pushplus Token" onchange="updateGlobalToken('pushplus', ${idx}, this.value)">
+      <span class="id-tag">ID: ${t.id}</span>
+      <button type="button" class="btn-icon" onclick="removeGlobalToken('pushplus', ${idx})" title="删除Token">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
+    </div>`).join('');
 }
-async function addGlobalToken(type){
-  if(!configData.notifiers[type]) configData.notifiers[type] = [];
-  let nextId = type + (configData.notifiers[type].length + 1);
-  configData.notifiers[type].push({id:nextId, token:''});
+
+function addGlobalToken(type){
+  if (type === 'bark') {
+    if (!configData.notifiers.bark) configData.notifiers.bark = { server_url: '', tokens: [] };
+    const barkTokens = configData.notifiers.bark.tokens;
+    let nextId = `bark${barkTokens.length + 1}`;
+    barkTokens.push({id: nextId, token: ''});
+  } else { // pushplus
+    if (!configData.notifiers.pushplus) configData.notifiers.pushplus = [];
+    const pushplusTokens = configData.notifiers.pushplus;
+    let nextId = `pushplus${pushplusTokens.length + 1}`;
+    pushplusTokens.push({id: nextId, token: ''});
+  }
   renderNotifierModal();
 }
-async function removeGlobalToken(type, idx){
-  configData.notifiers[type].splice(idx,1);
+function removeGlobalToken(type, idx){
+  if (type === 'bark') {
+    configData.notifiers.bark.tokens.splice(idx, 1);
+  } else {
+    configData.notifiers.pushplus.splice(idx, 1);
+  }
   renderNotifierModal();
 }
-async function updateGlobalToken(type, idx, value){
-  configData.notifiers[type][idx].token = value;
+function updateGlobalToken(type, idx, value){
+  if (type === 'bark') {
+    configData.notifiers.bark.tokens[idx].token = value;
+  } else {
+    configData.notifiers.pushplus[idx].token = value;
+  }
 }
 
 // ---------- 群组列表主渲染 ----------
@@ -379,6 +412,8 @@ document.getElementById('notifierForm').onsubmit = async function(e){
     msmtp_user: document.getElementById('msmtp_user').value, msmtp_pass: document.getElementById('msmtp_pass').value,
     msmtp_from: document.getElementById('msmtp_from').value
   };
+
+  configData.notifiers.bark.server_url = document.getElementById('bark_server_url').value.trim();
 
   if (await saveConfigToServer()) {
       statusSpan.textContent = "保存成功！";
