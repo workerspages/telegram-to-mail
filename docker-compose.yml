@@ -9,8 +9,10 @@ services:
       - WEB_PASSWORD=admin123
       - API_ID=12345678
       - API_HASH=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      # 要启用 Cloudflare Tunnel 功能，请取消下面一行的注释，并粘贴您的 Token。
+      # 如果此行被注释或值为空，则容器启动时不会启用 Tunnel 功能。
+      - TUNNEL_TOKEN=     
     volumes:
-      - ./session_data:/app/session_data
       - ./data:/app/data
     restart: unless-stopped
     stdin_open: true
