@@ -54,7 +54,7 @@ async def send_email(email_config, subject, body, attachment=None, filename=None
     update_msmtp_config(email_config)
     msg = MIMEMultipart()
     msg['From'] = email_config.get('msmtp_from')
-    msg['To'] = email_config.get('msmtp_from') # 默认发送给自己
+    msg['To'] = email_config.get('msmtp_from')
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain', 'utf-8'))
     
@@ -92,7 +92,7 @@ async def send_bark(server_url, token, title, content):
 
 async def send_pushplus(token, title, content):
     """发送 Pushplus 推送"""
-    url = "http://www.pushplus.plus/send"
+    url = "https://www.pushplus.plus/send"
     payload = {"token": token, "title": title, "content": content}
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=payload) as response:
@@ -102,45 +102,43 @@ async def send_pushplus(token, title, content):
                 print("Pushplus notification sent successfully.")
 
 # --- 辅助函数 ---
-def get_notifier_tokens(config, notifier_ids, method):
-    """根据 ID 和方法类型，从配置中获取对应的 token 列表"""
-    tokens = []
+def get_bark_details(config, bark_id):
+    """根据 Bark ID，从配置中获取对应的 token 和 server_url"""
     notifiers_config = config.get('notifiers', {})
-    
-    if method == 'bark' and 'bark' in notifiers_config:
-        bark_tokens_list = notifiers_config['bark'].get('tokens', [])
-        for nid in notifier_ids:
-            for bark_notifier in bark_tokens_list:
-                if bark_notifier.get('id') == nid:
-                    tokens.append(bark_notifier.get('token'))
-                    
-    elif method == 'pushplus' and 'pushplus' in notifiers_config:
-        for nid in notifier_ids:
-            for pushplus_notifier in notifiers_config['pushplus']:
-                if pushplus_notifier.get('id') == nid:
-                    tokens.append(pushplus_notifier.get('token'))
-                    
-    return tokens
+    if 'bark' in notifiers_config:
+        for bark_notifier in notifiers_config['bark']:
+            if bark_notifier.get('id') == bark_id:
+                return {
+                    "token": bark_notifier.get('token'),
+                    "server_url": bark_notifier.get('server_url')
+                }
+    return None
+
+def get_pushplus_token(config, pushplus_id):
+    """根据 Pushplus ID，从配置中获取对应的 token"""
+    notifiers_config = config.get('notifiers', {})
+    if 'pushplus' in notifiers_config:
+        for pushplus_notifier in notifiers_config['pushplus']:
+            if pushplus_notifier.get('id') == pushplus_id:
+                return pushplus_notifier.get('token')
+    return None
 
 # --- 核心消息处理逻辑 ---
 async def process_notifications(config, notifiers_list, subject, body):
-    """
-    处理并发送一组通知，包含错误捕获逻辑。
-    """
+    """处理并发送一组通知，包含错误捕获逻辑。"""
     for nid in notifiers_list:
         try:
             if nid.startswith('bark'):
-                bark_config = config.get('notifiers', {}).get('bark', {})
-                server_url = bark_config.get('server_url') or "https://api.day.app"
-                
-                tokens = get_notifier_tokens(config, [nid], 'bark')
-                for token in tokens:
-                    await send_bark(server_url, token, subject, body)
+                bark_details = get_bark_details(config, nid)
+                if bark_details and bark_details.get('token'):
+                    server_url = bark_details.get('server_url') or "https://api.day.app"
+                    await send_bark(server_url, bark_details['token'], subject, body)
 
             elif nid.startswith('pp'):
-                tokens = get_notifier_tokens(config, [nid], 'pushplus')
-                for token in tokens:
+                token = get_pushplus_token(config, nid)
+                if token:
                     await send_pushplus(token, subject, body)
+                    
             elif nid == "email":
                 if 'email' in config.get('notifiers', {}):
                     await send_email(config['notifiers']['email'], subject, body)
