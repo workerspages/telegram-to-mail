@@ -7,10 +7,7 @@
       "msmtp_pass": "",
       "msmtp_from": ""
     },
-    "bark": {
-      "server_url": "",
-      "tokens": []
-    },
+    "bark": [],
     "pushplus": []
   },
   "groups": []
