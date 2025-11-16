@@ -185,4 +185,165 @@
         groupDiv.innerHTML = `
           <div class="group-header">
             <span class="group-id">群组 ID: ${groupId}</span>
-            <button class="btn btn-danger" onclick="deleteGroup('${groupId}
+            <button class="btn btn-danger" onclick="deleteGroup('${groupId}')">删除群组</button>
+          </div>
+
+          <div class="form-group">
+            <label>Bark Tokens (每行一个):</label>
+            <div class="token-list" id="bark-${groupId}">
+              ${group.bark_tokens.map((token, idx) => `
+                <div class="token-item">
+                  <input type="text" value="${token}" onchange="updateBarkToken('${groupId}', ${idx}, this.value)">
+                  <button class="btn btn-danger" onclick="removeBarkToken('${groupId}', ${idx})">删除</button>
+                </div>
+              `).join('')}
+            </div>
+            <button class="btn btn-secondary" onclick="addBarkToken('${groupId}')">添加 Bark Token</button>
+          </div>
+
+          <div class="form-group">
+            <label>Pushplus Tokens (每行一个):</label>
+            <div class="token-list" id="pushplus-${groupId}">
+              ${group.pushplus_tokens.map((token, idx) => `
+                <div class="token-item">
+                  <input type="text" value="${token}" onchange="updatePushplusToken('${groupId}', ${idx}, this.value)">
+                  <button class="btn btn-danger" onclick="removePushplusToken('${groupId}', ${idx})">删除</button>
+                </div>
+              `).join('')}
+            </div>
+            <button class="btn btn-secondary" onclick="addPushplusToken('${groupId}')">添加 Pushplus Token</button>
+          </div>
+
+          <div class="form-group">
+            <label>关键字与推送方式映射:</label>
+            <div id="keywords-${groupId}">
+              ${Object.entries(group.keywords || {}).map(([kw, app]) => `
+                <div class="keyword-item">
+                  <input type="text" value="${kw}" placeholder="关键字" onchange="updateKeyword('${groupId}', '${kw}', this.value, '${app}')">
+                  <select onchange="updateKeywordApp('${groupId}', '${kw}', this.value)">
+                    <option value="bark" ${app === 'bark' ? 'selected' : ''}>Bark</option>
+                    <option value="pushplus" ${app === 'pushplus' ? 'selected' : ''}>Pushplus</option>
+                    <option value="email" ${app === 'email' ? 'selected' : ''}>Email</option>
+                  </select>
+                  <button class="btn btn-danger" onclick="removeKeyword('${groupId}', '${kw}')">删除</button>
+                </div>
+              `).join('')}
+            </div>
+            <button class="btn btn-secondary" onclick="addKeyword('${groupId}')">添加关键字</button>
+          </div>
+        `;
+        container.appendChild(groupDiv);
+      }
+    }
+
+    // 添加新群组
+    function addNewGroup() {
+      const groupId = document.getElementById('newGroupId').value.trim();
+      if (!groupId) {
+        showNotification('请输入群组 ID', 'error');
+        return;
+      }
+      if (configData.groups[groupId]) {
+        showNotification('该群组已存在', 'error');
+        return;
+      }
+      configData.groups[groupId] = {
+        bark_tokens: [],
+        pushplus_tokens: [],
+        keywords: {}
+      };
+      document.getElementById('newGroupId').value = '';
+      renderGroups();
+      showNotification('群组添加成功', 'success');
+    }
+
+    // 删除群组
+    function deleteGroup(groupId) {
+      if (confirm(`确定要删除群组 ${groupId} 吗？`)) {
+        delete configData.groups[groupId];
+        renderGroups();
+        showNotification('群组已删除', 'success');
+      }
+    }
+
+    // Bark Token 操作
+    function addBarkToken(groupId) {
+      configData.groups[groupId].bark_tokens.push('');
+      renderGroups();
+    }
+
+    function updateBarkToken(groupId, idx, value) {
+      configData.groups[groupId].bark_tokens[idx] = value;
+    }
+
+    function removeBarkToken(groupId, idx) {
+      configData.groups[groupId].bark_tokens.splice(idx, 1);
+      renderGroups();
+    }
+
+    // Pushplus Token 操作
+    function addPushplusToken(groupId) {
+      configData.groups[groupId].pushplus_tokens.push('');
+      renderGroups();
+    }
+
+    function updatePushplusToken(groupId, idx, value) {
+      configData.groups[groupId].pushplus_tokens[idx] = value;
+    }
+
+    function removePushplusToken(groupId, idx) {
+      configData.groups[groupId].pushplus_tokens.splice(idx, 1);
+      renderGroups();
+    }
+
+    // 关键字操作
+    function addKeyword(groupId) {
+      const newKw = prompt('请输入关键字:');
+      if (newKw && newKw.trim()) {
+        configData.groups[groupId].keywords[newKw.trim()] = 'bark';
+        renderGroups();
+      }
+    }
+
+    function updateKeyword(groupId, oldKw, newKw, app) {
+      if (newKw !== oldKw) {
+        delete configData.groups[groupId].keywords[oldKw];
+        configData.groups[groupId].keywords[newKw] = app;
+        renderGroups();
+      }
+    }
+
+    function updateKeywordApp(groupId, kw, app) {
+      configData.groups[groupId].keywords[kw] = app;
+    }
+
+    function removeKeyword(groupId, kw) {
+      delete configData.groups[groupId].keywords[kw];
+      renderGroups();
+    }
+
+    // 保存所有配置
+    async function saveAllConfig() {
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(configData)
+        });
+        
+        if (response.ok) {
+          showNotification('配置保存成功！', 'success');
+        } else {
+          const error = await response.text();
+          showNotification('保存失败: ' + error, 'error');
+        }
+      } catch (e) {
+        showNotification('保存出错: ' + e.message, 'error');
+      }
+    }
+
+    // 页面加载时渲染
+    renderGroups();
+  </script>
+</body>
+</html>
