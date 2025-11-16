@@ -6,21 +6,13 @@
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    .modal-mask {
-      position:fixed; left:0; top:0; right:0; bottom:0;
-      background:rgba(33,61,82,.15); z-index: 1000;
-      display: flex; justify-content: center; align-items: center;
-    }
-    .modal {
-      background:#fff; border-radius:8px; box-shadow:0 2px 12px #3332;
-      max-width:480px; width: 96vw;
-      padding: 32px 24px; position: relative;
-    }
+    .modal-mask { position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(33,61,82,.15); z-index:1000; display:flex; justify-content:center; align-items:center; }
+    .modal { background:#fff; border-radius:8px; box-shadow:0 2px 12px #3332; max-width:480px; width:96vw; padding:32px 24px; position:relative; }
     .modal h2 {margin-top:0;}
     .modal .close {position:absolute;right:12px;top:7px;font-size:18px;cursor:pointer;}
     .group-card { border: 1px solid #eee; border-radius: 5px; padding: 15px; margin-bottom: 20px;}
     .btn {padding: 6px 22px; border-radius: 4px; border: none; background: #4CAF50; color: #fff;}
-    .btn[disabled], button:disabled {background: #ccc; cursor:not-allowed;}
+    button[disabled], .btn[disabled] {background: #ccc;}
     .btn-danger {background:#f44336;}
     .btn-secondary {background: #2b89d9;}
     .btn-small {padding:4px 10px; font-size:14px;}
@@ -39,7 +31,7 @@
   </style>
 </head>
 <body>
-<div class="container" style="max-width:900px;margin:32px auto 24px auto;background:#fff;padding:24px 8vw 16px 8vw; border-radius:10px; box-shadow: 0 2px 9px #eee;">
+<div class="container" style="max-width:900px;margin:32px auto 24px auto;background:#fff;padding:24px 8vw 16px 8vw; border-radius:10px; box-shadow:0 2px 9px #eee;">
   <div class="flex-between">
     <h2>Telegram 群组监听与推送配置</h2>
     <button class="btn btn-secondary btn-small" onclick="logout()">退出登录</button>
@@ -86,14 +78,22 @@
   </div>
 </div>
 
-<!-- 添加群组弹窗 -->
+<!-- 添加群组弹窗，支持推送通道/关键字推送配置 -->
 <div id="addGroupModalMask" class="modal-mask" style="display:none;">
-  <div class="modal">
+  <div class="modal" style="max-width:600px;">
     <span class="close" onclick="closeAddGroupModal()">&times;</span>
     <h2>添加群组</h2>
     <form id="addGroupForm">
       <div><label>群组ID</label> <input type="text" id="modalGroupId" required placeholder="如-1001234567890"></div>
-      <div><label>群组名称</label> <input type="text" id="modalGroupName" placeholder="可选"></div>
+      <div><label>群组名称</label> <input type="text" id="modalGroupName" placeholder="群组名称"></div>
+      <div>
+        <label>默认推送通道</label>
+        <select id="modalDefaultNotify" multiple></select>
+      </div>
+      <div><b>关键字推送配置：</b>
+        <div id="addGroupKeywords"></div>
+        <button type="button" class="btn btn-small btn-secondary" onclick="addKeywordRow()">添加关键字</button>
+      </div>
       <div class="flush-right" style="margin-top:12px;">
         <button type="submit" class="btn">保存</button>
         <button type="button" class="btn btn-danger" onclick="closeAddGroupModal()">取消</button>
@@ -107,13 +107,13 @@
 let configData = {{ config|tojson|safe }};
 const pushTypes = { bark: "Bark", pushplus: "Pushplus", email: "Email" };
 
-// ----------- 弹窗管理 -------
+// 弹窗管理
 function openNotifierModal(){ renderNotifierModal(); document.getElementById('notifierModalMask').style.display='flex'; }
 function closeNotifierModal(){ document.getElementById('notifierModalMask').style.display='none'; }
-function openAddGroupModal(){ document.getElementById('addGroupModalMask').style.display='flex'; document.getElementById('addGroupError').textContent=""; }
+function openAddGroupModal(){ document.getElementById('addGroupModalMask').style.display='flex'; document.getElementById('addGroupError').textContent=""; renderModalDefaultNotify(); renderKeywordRows([]); }
 function closeAddGroupModal(){ document.getElementById('addGroupModalMask').style.display='none'; }
 
-// ----------- 推送通道表单渲染 ----------
+// 推送通道弹窗渲染
 function renderNotifierModal(){
   let n = configData.notifiers;
   document.getElementById('msmtp_host').value = n.email.msmtp_host||'';
@@ -153,7 +153,7 @@ function updateGlobalToken(type, idx, value){
   configData.notifiers[type][idx].token = value;
 }
 
-// ----------- 群组列表管理 ----------
+// 群组列表主渲染
 function renderGroups(){
   let g = configData.groups;
   let html = '';
@@ -171,7 +171,7 @@ function renderGroups(){
         <div id="kwlist-${idx}">
           ${(group.keywords||[]).map((kw,kidx)=>createKeywordRow(idx,kidx,kw)).join('')}
         </div>
-        <button class="btn btn-small btn-secondary" onclick="addKeyword(${idx})">添加关键字</button>
+        <button class="btn btn-small btn-secondary" onclick="addKeywordToGroup(${idx})">添加关键字</button>
       </div>
     </div>`;
   });
@@ -190,9 +190,9 @@ function updateGroupNotifier(type, groupIdx, sel) {
   const vals = Array.from(sel.selectedOptions).map(x=>x.value);
   configData.groups[groupIdx][type] = vals;
 }
-function addKeyword(idx){
-  if(!configData.groups[idx].keywords) configData.groups[idx].keywords=[];
-  configData.groups[idx].keywords.push({word:'',notifiers:[]});
+function addKeywordToGroup(groupIdx){
+  if(!configData.groups[groupIdx].keywords) configData.groups[groupIdx].keywords=[];
+  configData.groups[groupIdx].keywords.push({word:'',notifiers:[]});
   renderGroups();
 }
 function createKeywordRow(groupIdx, kidx, kwObj){
@@ -214,11 +214,58 @@ function deleteGroup(idx){
   renderGroups();
 }
 
-// ----------- 添加群组表单 ----------
+// ---------- 添加群组弹窗支持推送、关键字 ----------
+function renderModalDefaultNotify(){
+  let sel = document.getElementById('modalDefaultNotify');
+  sel.innerHTML = '';
+  let opts = [];
+  for(let t in configData.notifiers) configData.notifiers[t].forEach(n=>opts.push({id:n.id,type:t}));
+  opts.push({id:'email',type:'email'});
+  for(let o of opts){
+    let opt = document.createElement('option');
+    opt.value = o.id;
+    opt.text = (pushTypes[o.type]||o.type) + '-' + o.id;
+    sel.appendChild(opt);
+  }
+}
+let addGroupKeywords = [];
+function renderKeywordRows(keywords){
+  addGroupKeywords = keywords;
+  let kwDiv = document.getElementById('addGroupKeywords');
+  kwDiv.innerHTML = '';
+  keywords.forEach((kw, idx)=>{
+    kwDiv.innerHTML += `<div class="keyword-row">
+      <input type="text" value="${kw.word||''}" onchange="updateNewKeywordWord(${idx},this.value)" placeholder="关键字">
+      ${createNewKeywordNotifySelect(idx,kw.notifiers||[])}
+      <button type="button" class="btn btn-small btn-danger" onclick="removeKeywordRow(${idx})">删除</button>
+    </div>`;
+  });
+}
+function addKeywordRow(){
+  addGroupKeywords.push({word:'',notifiers:[]});
+  renderKeywordRows(addGroupKeywords);
+}
+function updateNewKeywordWord(idx,val){ addGroupKeywords[idx].word = val;}
+function createNewKeywordNotifySelect(kidx,vals){
+  let opts = [];
+  for(let t in configData.notifiers) configData.notifiers[t].forEach(n=>opts.push({id:n.id,type:t}));
+  opts.push({id:'email',type:'email'});
+  return `<select multiple onchange="updateNewKeywordNotify(${kidx},this)">` +
+    opts.map(o=>`<option value="${o.id}"${vals.includes(o.id)?' selected':''}>${pushTypes[o.type]}-${o.id}</option>`).join('') +
+    `</select>`;
+}
+function updateNewKeywordNotify(idx,sel){
+  addGroupKeywords[idx].notifiers = Array.from(sel.selectedOptions).map(x=>x.value);
+}
+function removeKeywordRow(idx){
+  addGroupKeywords.splice(idx,1);
+  renderKeywordRows(addGroupKeywords);
+}
 document.getElementById('addGroupForm').onsubmit = function(e){
   e.preventDefault();
   let gid = document.getElementById('modalGroupId').value.trim();
   let name = document.getElementById('modalGroupName').value.trim();
+  let defaultNotify = Array.from(document.getElementById('modalDefaultNotify').selectedOptions).map(x=>x.value);
   if(!gid){
     document.getElementById('addGroupError').textContent="群组ID必填";
     return;
@@ -227,12 +274,17 @@ document.getElementById('addGroupForm').onsubmit = function(e){
     document.getElementById('addGroupError').textContent="群组ID已存在";
     return;
   }
-  configData.groups.push({id:gid,name,default_notifiers:[],keywords:[]});
+  configData.groups.push({
+    id: gid,
+    name: name,
+    default_notifiers: defaultNotify,
+    keywords: JSON.parse(JSON.stringify(addGroupKeywords))
+  });
   closeAddGroupModal();
   renderGroups();
 };
 
-// ----------- 推送通道表单 ----------
+// 推送通道表单提交
 document.getElementById('notifierForm').onsubmit = async function(e){
   e.preventDefault();
   let n = configData.notifiers;
@@ -263,7 +315,7 @@ document.getElementById('notifierForm').onsubmit = async function(e){
   }
 };
 
-// ----------- 全局保存 ----------
+// 全局保存
 function saveAllConfig(){
   document.getElementById('saveError').textContent="";
   document.getElementById('saveSuccess').textContent="";
@@ -278,13 +330,9 @@ function saveAllConfig(){
     } else {
       document.getElementById('saveError').textContent="保存失败";
     }
-  }).catch(()=>{
-    document.getElementById('saveError').textContent="请求出错";
-  });
+  }).catch(()=>{ document.getElementById('saveError').textContent="请求出错"; });
 }
-function logout(){
-  location.href="/logout";
-}
+function logout(){ location.href="/logout"; }
 
 renderGroups();
 
