@@ -25,11 +25,6 @@
   </header>
 
   <main id="groupList"></main>
-
-  <div style="text-align: right; margin-top: 1rem;">
-    <button class="btn btn-primary" onclick="saveAllConfig()" style="min-width: 150px;">保存所有配置</button>
-    <span id="saveStatus" style="margin-left: 1rem; font-size: 0.9em;"></span>
-  </div>
 </div>
 
 <!-- 推送通道配置弹窗 -->
@@ -41,20 +36,24 @@
     </div>
     <form id="notifierForm">
       <div class="modal-body">
-        <h4>Email (SMTP)</h4>
-        <div class="form-group"><label for="msmtp_host">Host</label><input id="msmtp_host"></div>
-        <div class="form-group"><label for="msmtp_port">Port</label><input id="msmtp_port"></div>
-        <div class="form-group"><label for="msmtp_user">User</label><input id="msmtp_user"></div>
-        <div class="form-group"><label for="msmtp_pass">Password</label><input id="msmtp_pass" type="password"></div>
-        <div class="form-group"><label for="msmtp_from">From Address</label><input id="msmtp_from"></div>
-
-        <h4>Bark Tokens</h4>
-        <div id="barkTokenList"></div>
-        <button type="button" class="btn btn-secondary btn-small" onclick="addGlobalToken('bark')">添加 Bark Token</button>
-
-        <h4>Pushplus Tokens</h4>
-        <div id="pushTokenList"></div>
-        <button type="button" class="btn btn-secondary btn-small" onclick="addGlobalToken('pushplus')">添加 Pushplus Token</button>
+        <div class="notifier-section">
+          <h4>Email (SMTP)</h4>
+          <div class="form-group"><label for="msmtp_host">Host</label><input id="msmtp_host"></div>
+          <div class="form-group"><label for="msmtp_port">Port</label><input id="msmtp_port"></div>
+          <div class="form-group"><label for="msmtp_user">User</label><input id="msmtp_user"></div>
+          <div class="form-group"><label for="msmtp_pass">Password</label><input id="msmtp_pass" type="password"></div>
+          <div class="form-group"><label for="msmtp_from">From Address</label><input id="msmtp_from"></div>
+        </div>
+        <div class="notifier-section">
+          <h4>Bark Tokens</h4>
+          <div id="barkTokenList"></div>
+          <button type="button" class="btn btn-secondary btn-small" onclick="addGlobalToken('bark')">添加 Bark Token</button>
+        </div>
+        <div class="notifier-section">
+          <h4>Pushplus Tokens</h4>
+          <div id="pushTokenList"></div>
+          <button type="button" class="btn btn-secondary btn-small" onclick="addGlobalToken('pushplus')">添加 Pushplus Token</button>
+        </div>
       </div>
       <div class="modal-status">
         <span id="notifierStatus"></span>
@@ -103,6 +102,21 @@
 let configData = {{ config|tojson|safe }};
 const pushTypes = { bark: "Bark", pushplus: "Pushplus", email: "Email" };
 
+// ---------- 核心：保存配置到服务器 ----------
+async function saveConfigToServer() {
+    try {
+        const response = await fetch('/api/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(configData)
+        });
+        return response.ok;
+    } catch (error) {
+        console.error("Failed to save config:", error);
+        return false;
+    }
+}
+
 // ---------- 展开/折叠功能 ----------
 function toggleGroup(idx) {
     const card = document.getElementById(`group-card-${idx}`);
@@ -110,6 +124,8 @@ function toggleGroup(idx) {
         card.classList.toggle('expanded');
     }
 }
+
+// ... (The rest of the script is largely the same, but with calls to saveConfigToServer integrated)
 
 // ---------- 全局函数 ----------
 function getAvailableNotifiers() {
@@ -192,9 +208,7 @@ function renderGroups(expandedIndex = -1) {
             <span>[ID: ${group.id}]</span>
           </div>
           <div class="header-controls">
-            <!-- ★★★ FIX START ★★★ -->
             <button class="btn-icon" onclick="deleteGroup(event, ${idx})" title="删除群组">
-            <!-- ★★★ FIX END ★★★ -->
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger-color);"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
             <div class="toggle-icon">
@@ -205,7 +219,7 @@ function renderGroups(expandedIndex = -1) {
         <div class="group-card-body">
             <div class="form-group">
               <label>默认推送通道</label>
-              ${createNotifierCheckboxes(`group-${idx}-default`, group.default_notifiers || [], `updateGroupNotifier(${idx}, this)`)}
+              ${createNotifierCheckboxes(`group-${idx}-default`, group.default_notifiers || [], `updateGroupNotifier(${idx})`)}
             </div>
             <div class="form-group">
               <label>关键字推送</label>
@@ -234,15 +248,17 @@ function createNotifierCheckboxes(containerId, selectedValues = [], onchangeCall
     return `<div id="${containerId}" class="checkbox-group">${checkboxesHtml}</div>`;
 }
 
-function updateGroupNotifier(groupIdx, checkbox) {
+async function updateGroupNotifier(groupIdx) {
     const containerId = `group-${groupIdx}-default`;
     const checked = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
     configData.groups[groupIdx].default_notifiers = checked;
+    await saveConfigToServer();
 }
-function updateKeywordNotifier(groupIdx, kidx, checkbox) {
+async function updateKeywordNotifier(groupIdx, kidx) {
     const containerId = `group-${groupIdx}-kw-${kidx}`;
     const checked = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
     configData.groups[groupIdx].keywords[kidx].notifiers = checked;
+    await saveConfigToServer();
 }
 
 function createKeywordRow(groupIdx, kidx, kwObj){
@@ -253,30 +269,36 @@ function createKeywordRow(groupIdx, kidx, kwObj){
       <button type="button" class="btn-icon" onclick="removeKeyword(${groupIdx}, ${kidx})" title="删除关键字"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
     </div>
     <div class="keyword-notifiers">
-      ${createNotifierCheckboxes(containerId, kwObj.notifiers || [], `updateKeywordNotifier(${groupIdx}, ${kidx}, this)`)}
+      ${createNotifierCheckboxes(containerId, kwObj.notifiers || [], `updateKeywordNotifier(${groupIdx}, ${kidx})`)}
     </div>
   </div>`;
 }
-function addKeywordToGroup(groupIdx){
+async function addKeywordToGroup(groupIdx){
   if(!configData.groups[groupIdx].keywords) configData.groups[groupIdx].keywords=[];
   configData.groups[groupIdx].keywords.push({word:'', notifiers:[]});
-  renderGroups(groupIdx); // Re-render and keep the current group expanded
+  if (await saveConfigToServer()) {
+    renderGroups(groupIdx);
+  }
 }
-function updateKeywordWord(groupIdx, kidx, val){ configData.groups[groupIdx].keywords[kidx].word = val; }
-function removeKeyword(groupIdx, kidx){ 
+async function updateKeywordWord(groupIdx, kidx, val){ 
+    configData.groups[groupIdx].keywords[kidx].word = val; 
+    await saveConfigToServer();
+}
+async function removeKeyword(groupIdx, kidx){ 
     configData.groups[groupIdx].keywords.splice(kidx,1); 
-    renderGroups(groupIdx); // Re-render and keep the current group expanded
-}
-
-// ★★★ FIX START ★★★
-function deleteGroup(event, idx) {
-    event.stopPropagation(); // Stop the click from bubbling up to the header
-    if (confirm('确定要删除这个群组的配置吗？此操作不可恢复。')) {
-        configData.groups.splice(idx, 1);
-        renderGroups();
+    if (await saveConfigToServer()) {
+        renderGroups(groupIdx);
     }
 }
-// ★★★ FIX END ★★★
+async function deleteGroup(event, idx) {
+    event.stopPropagation();
+    if (confirm('确定要删除这个群组的配置吗？此操作不可恢复。')) {
+        configData.groups.splice(idx, 1);
+        if (await saveConfigToServer()) {
+            renderGroups();
+        }
+    }
+}
 
 // ---------- 添加群组弹窗逻辑 ----------
 function renderModalDefaultNotify(selectedValues){
@@ -319,22 +341,29 @@ function updateNewKeywordNotify(idx){
 }
 
 // ---------- 表单提交与保存 ----------
-document.getElementById('addGroupForm').onsubmit = function(e){
+document.getElementById('addGroupForm').onsubmit = async function(e){
   e.preventDefault();
+  const errorSpan = document.getElementById('addGroupError');
   const gid = document.getElementById('modalGroupId').value.trim();
   const name = document.getElementById('modalGroupName').value.trim();
   const defaultNotify = Array.from(document.querySelectorAll('#modalDefaultNotifyContainer input:checked')).map(el => el.value);
-  if(!gid) { document.getElementById('addGroupError').textContent="群组ID是必填项。"; return; }
-  if(configData.groups.some(g => g.id === gid)) { document.getElementById('addGroupError').textContent="该群组ID已存在，请勿重复添加。"; return; }
+  if(!gid) { errorSpan.textContent="群组ID是必填项。"; return; }
+  if(configData.groups.some(g => g.id === gid)) { errorSpan.textContent="该群组ID已存在，请勿重复添加。"; return; }
   
-  configData.groups.push({
+  const newGroup = {
     id: gid, name: name, default_notifiers: defaultNotify,
     keywords: JSON.parse(JSON.stringify(addGroupKeywords))
-  });
+  };
+  configData.groups.push(newGroup);
   
-  const newIndex = configData.groups.length - 1;
-  closeAddGroupModal();
-  renderGroups(newIndex); // Render with the new group expanded
+  if (await saveConfigToServer()) {
+    const newIndex = configData.groups.length - 1;
+    closeAddGroupModal();
+    renderGroups(newIndex);
+  } else {
+    errorSpan.textContent = "保存失败，请检查网络或服务。";
+    configData.groups.pop(); // Revert change if save fails
+  }
 };
 
 document.getElementById('notifierForm').onsubmit = async function(e){
@@ -343,49 +372,27 @@ document.getElementById('notifierForm').onsubmit = async function(e){
   statusSpan.textContent = "正在保存...";
   statusSpan.style.color = 'var(--text-light)';
 
-  let n = configData.notifiers;
-  n.email = {
+  // Temporarily store old notifiers for potential rollback
+  const oldNotifiers = JSON.parse(JSON.stringify(configData.notifiers));
+  
+  configData.notifiers.email = {
     msmtp_host: document.getElementById('msmtp_host').value, msmtp_port: document.getElementById('msmtp_port').value,
     msmtp_user: document.getElementById('msmtp_user').value, msmtp_pass: document.getElementById('msmtp_pass').value,
     msmtp_from: document.getElementById('msmtp_from').value
   };
-  try {
-    let resp = await fetch('/api/notifiers', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(n) });
-    if(resp.ok){
+
+  if (await saveConfigToServer()) {
       statusSpan.textContent = "保存成功！";
       statusSpan.style.color = 'var(--success-color)';
       setTimeout(closeNotifierModal, 1000);
-    } else { 
-      statusSpan.textContent = "保存失败，请检查网络或服务。";
+      renderGroups(); // Re-render groups in case notifier IDs changed
+  } else {
+      statusSpan.textContent = "保存失败，配置已回滚。";
       statusSpan.style.color = 'var(--danger-color)';
-    }
-  } catch(e) { 
-      statusSpan.textContent = "请求错误，无法连接服务器。";
-      statusSpan.style.color = 'var(--danger-color)';
+      configData.notifiers = oldNotifiers; // Rollback
   }
 };
 
-function saveAllConfig(){
-  const statusSpan = document.getElementById('saveStatus');
-  statusSpan.textContent = "正在保存...";
-  statusSpan.style.color = 'var(--text-light)';
-
-  fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(configData) })
-  .then(r => {
-    if(r.ok) {
-      statusSpan.textContent = "所有配置已成功保存！";
-      statusSpan.style.color = 'var(--success-color)';
-    } else {
-      statusSpan.textContent = "保存失败。";
-      statusSpan.style.color = 'var(--danger-color)';
-    }
-  }).catch(() => {
-    statusSpan.textContent = "请求出错。";
-    statusSpan.style.color = 'var(--danger-color)';
-  }).finally(() => {
-      setTimeout(() => { statusSpan.textContent = "" }, 3000);
-  });
-}
 function logout(){ location.href="/logout"; }
 
 // ---------- 初始渲染 ----------
