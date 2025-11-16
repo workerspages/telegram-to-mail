@@ -1,27 +1,14 @@
 {
   "notifiers": {
     "email": {
-      "msmtp_host": "smtp.qq.com",
+      "msmtp_host": "",
       "msmtp_port": "587",
-      "msmtp_user": "your_sender_email@qq.com",
-      "msmtp_pass": "your_app_specific_password",
-      "msmtp_from": "your_sender_email@qq.com"
+      "msmtp_user": "",
+      "msmtp_pass": "",
+      "msmtp_from": ""
     },
-    "bark": [
-      { "id": "bark1", "token": "BARK_TOKEN1" }
-    ],
-    "pushplus": [
-      { "id": "pp1", "token": "PUSHP_TOKEN1" }
-    ]
+    "bark": [],
+    "pushplus": []
   },
-  "groups": [
-    {
-      "id": "-10000",
-      "name": "公司技术群",
-      "default_notifiers": ["bark1", "pp1", "email"],
-      "keywords": [
-        { "word": "报警", "notifiers": ["bark1", "email"] }
-      ]
-    }
-  ]
+  "groups": []
 }
