@@ -2,122 +2,131 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>Telegram 配置管理系统</title>
+  <title>Telegram 群组监听与推送配置管理</title>
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    .container { max-width: 1200px; margin: 30px auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px #eee; }
-    .section-title {font-size:1.3em; color:#333; margin-top:32px; margin-bottom:16px;}
-    .group-card { border: 1px solid #eee; border-radius: 6px; padding: 16px; margin-bottom: 24px; }
-    .group-header { font-size: 1.1em; font-weight: bold; margin-bottom: 8px; color: #37587d;}
-    .keyword-row, .notifier-row {display:flex; gap:12px; align-items:center; margin-bottom:12px;}
-    .keyword-row input {flex:1;}
-    .notifier-label { width:150px; font-weight: bold;}
-    .actions {margin-top:8px;}
-    .btn { padding:6px 20px; border:none; border-radius:4px; background:#4CAF50; color:#fff; margin-right:7px; cursor:pointer;}
+    .modal-mask {
+      position:fixed; left:0; top:0; right:0; bottom:0;
+      background:rgba(33,61,82,.15); z-index: 1000;
+      display: flex; justify-content: center; align-items: center;
+    }
+    .modal {
+      background:#fff; border-radius:8px; box-shadow:0 2px 12px #3332;
+      max-width:480px; width: 96vw;
+      padding: 32px 24px; position: relative;
+    }
+    .modal h2 {margin-top:0;}
+    .modal .close {position:absolute;right:12px;top:7px;font-size:18px;cursor:pointer;}
+    .group-card { border: 1px solid #eee; border-radius: 5px; padding: 15px; margin-bottom: 20px;}
+    .btn {padding: 6px 22px; border-radius: 4px; border: none; background: #4CAF50; color: #fff;}
+    .btn[disabled], button:disabled {background: #ccc; cursor:not-allowed;}
     .btn-danger {background:#f44336;}
-    .btn-small {padding:6px 12px; font-size:14px;}
-    .btn-secondary {background: #2196F3;}
-    .flex-between { display: flex; justify-content: space-between; align-items: center;}
-    .global-notifier-list {margin-bottom:12px;}
-    .token-row {display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+    .btn-secondary {background: #2b89d9;}
+    .btn-small {padding:4px 10px; font-size:14px;}
+    .keyword-row {display:flex; gap:10px; margin-bottom:6px;}
+    .keyword-row input {flex:1;}
+    .token-row {display:flex; gap:10px; align-items:center; margin-bottom:6px;}
     .token-row input {flex:1;}
-    .token-type { width:80px; text-align:right;}
-    .group-add-form, .notifier-add-form {margin-bottom:24px;}
+    .flush-right {text-align:right;}
+    .flex-between {display:flex; justify-content:space-between; align-items:center;}
     .error-msg {color:#d32f2f; font-size:14px;}
-    @media (max-width:700px){
-      .container{padding:6px;}
-      .group-card,.section-title{font-size:1em;}
+    .success-msg {color:#388E3C; font-size:14px;}
+    @media (max-width:540px){
+      .modal{padding:10px;}
+      .group-card {padding:6px;}
     }
   </style>
 </head>
 <body>
-  <div class="container">
+<div class="container" style="max-width:900px;margin:32px auto 24px auto;background:#fff;padding:24px 8vw 16px 8vw; border-radius:10px; box-shadow: 0 2px 9px #eee;">
+  <div class="flex-between">
+    <h2>Telegram 群组监听与推送配置</h2>
+    <button class="btn btn-secondary btn-small" onclick="logout()">退出登录</button>
+  </div>
+  <div class="flush-right" style="margin-bottom:10px;">
+    <button class="btn btn-secondary btn-small" onclick="openNotifierModal()">推送通道设置</button>
+    <button class="btn btn-small" onclick="openAddGroupModal()">添加群组</button>
+  </div>
+  <div id="groupList"></div>
+  <div class="flush-right" style="margin-top:32px;">
+    <button class="btn" onclick="saveAllConfig()">保存所有配置</button>
+    <span class="error-msg" id="saveError"></span>
+    <span class="success-msg" id="saveSuccess"></span>
+  </div>
+</div>
 
-    <!-- 顶部导航 -->
-    <div class="flex-between">
-      <h2>Telegram 群组监听与推送配置</h2>
-      <a href="/logout" class="btn btn-secondary btn-small">退出登录</a>
-    </div>
-
-    <!-- 全局通知通道管理 -->
-    <div class="section-title">通知通道设置（全局）</div>
-    <form class="notifier-add-form" id="notifierForm">
-      <div class="global-notifier-list">
-        <div class="token-row">
-          <span class="token-type">Email Host</span>
-          <input type="text" id="msmtp_host" required placeholder="smtp主机">
-        </div>
-        <div class="token-row">
-          <span class="token-type">Email Port</span>
-          <input type="text" id="msmtp_port" required placeholder="端口">
-        </div>
-        <div class="token-row">
-          <span class="token-type">Email User</span>
-          <input type="text" id="msmtp_user" required placeholder="邮箱登录名">
-        </div>
-        <div class="token-row">
-          <span class="token-type">Email Pass</span>
-          <input type="password" id="msmtp_pass" required placeholder="邮箱密码(应用专用)">
-        </div>
-        <div class="token-row">
-          <span class="token-type">Email From</span>
-          <input type="text" id="msmtp_from" required placeholder="发件地址">
-        </div>
-      </div>
-      <div class="global-notifier-list">
-        <div class="notifier-label">Bark Tokens：</div>
+<!-- 推送通道配置弹窗 -->
+<div id="notifierModalMask" class="modal-mask" style="display:none;">
+  <div class="modal">
+    <span class="close" onclick="closeNotifierModal()">&times;</span>
+    <h2>推送通道设置</h2>
+    <form id="notifierForm">
+      <div><label>Email Host</label> <input id="msmtp_host" required></div>
+      <div><label>Email Port</label> <input id="msmtp_port" required></div>
+      <div><label>Email User</label> <input id="msmtp_user" required></div>
+      <div><label>Email Pass</label> <input id="msmtp_pass" required type="password"></div>
+      <div><label>Email From</label> <input id="msmtp_from" required></div>
+      <div style="margin-top:1em;">
+        <b>Bark Tokens：</b>
         <div id="barkTokenList"></div>
         <button type="button" class="btn btn-small btn-secondary" onclick="addGlobalToken('bark')">添加Bark Token</button>
       </div>
-      <div class="global-notifier-list">
-        <div class="notifier-label">Pushplus Tokens：</div>
+      <div style="margin-top:1em;">
+        <b>Pushplus Tokens：</b>
         <div id="pushTokenList"></div>
         <button type="button" class="btn btn-small btn-secondary" onclick="addGlobalToken('pushplus')">添加Pushplus Token</button>
       </div>
-      <button type="submit" class="btn btn-small">保存通知通道</button>
-      <span class="error-msg" id="notifierError"></span>
-    </form>
-
-    <!-- 群组监听配置 -->
-    <div class="section-title">群组监听列表</div>
-    <form class="group-add-form" id="groupAddForm">
-      <div class="token-row">
-        <input type="text" id="groupIdInput" placeholder="群组ID(如-1001234567890)" required>
-        <input type="text" id="groupNameInput" placeholder="群组名称（可选）">
-        <button type="submit" class="btn btn-small">添加群组</button>
+      <div class="flush-right" style="margin-top:14px;">
+        <button type="submit" class="btn">保存通道</button>
       </div>
-      <span class="error-msg" id="groupAddError"></span>
+      <div class="error-msg" id="notifierError"></div>
+      <div class="success-msg" id="notifierSuccess"></div>
     </form>
-
-    <div id="groupList"></div>
-
-    <!-- 保存全部配置 -->
-    <div style="margin-top:32px; text-align:right;">
-      <button class="btn" onclick="saveAllConfig()">保存所有配置</button>
-      <span class="error-msg" id="saveError"></span>
-    </div>
   </div>
+</div>
+
+<!-- 添加群组弹窗 -->
+<div id="addGroupModalMask" class="modal-mask" style="display:none;">
+  <div class="modal">
+    <span class="close" onclick="closeAddGroupModal()">&times;</span>
+    <h2>添加群组</h2>
+    <form id="addGroupForm">
+      <div><label>群组ID</label> <input type="text" id="modalGroupId" required placeholder="如-1001234567890"></div>
+      <div><label>群组名称</label> <input type="text" id="modalGroupName" placeholder="可选"></div>
+      <div class="flush-right" style="margin-top:12px;">
+        <button type="submit" class="btn">保存</button>
+        <button type="button" class="btn btn-danger" onclick="closeAddGroupModal()">取消</button>
+      </div>
+      <div class="error-msg" id="addGroupError"></div>
+    </form>
+  </div>
+</div>
 
 <script>
 let configData = {{ config|tojson|safe }};
 const pushTypes = { bark: "Bark", pushplus: "Pushplus", email: "Email" };
 
-// 渲染全局token/邮箱
-function renderGlobalNotifiers() {
-  let n = configData.notifiers;
-  document.getElementById('msmtp_host').value = n.email.msmtp_host || '';
-  document.getElementById('msmtp_port').value = n.email.msmtp_port || '';
-  document.getElementById('msmtp_user').value = n.email.msmtp_user || '';
-  document.getElementById('msmtp_pass').value = n.email.msmtp_pass || '';
-  document.getElementById('msmtp_from').value = n.email.msmtp_from || '';
+// ----------- 弹窗管理 -------
+function openNotifierModal(){ renderNotifierModal(); document.getElementById('notifierModalMask').style.display='flex'; }
+function closeNotifierModal(){ document.getElementById('notifierModalMask').style.display='none'; }
+function openAddGroupModal(){ document.getElementById('addGroupModalMask').style.display='flex'; document.getElementById('addGroupError').textContent=""; }
+function closeAddGroupModal(){ document.getElementById('addGroupModalMask').style.display='none'; }
 
+// ----------- 推送通道表单渲染 ----------
+function renderNotifierModal(){
+  let n = configData.notifiers;
+  document.getElementById('msmtp_host').value = n.email.msmtp_host||'';
+  document.getElementById('msmtp_port').value = n.email.msmtp_port||'';
+  document.getElementById('msmtp_user').value = n.email.msmtp_user||'';
+  document.getElementById('msmtp_pass').value = n.email.msmtp_pass||'';
+  document.getElementById('msmtp_from').value = n.email.msmtp_from||'';
   let barkList = document.getElementById('barkTokenList');
   barkList.innerHTML = '';
   n.bark.forEach((t, idx) => {
     barkList.innerHTML += `<div class="token-row">
       <input type="text" value="${t.token}" onchange="updateGlobalToken('bark',${idx},this.value)">
-      <span>id:${t.id}</span>
+      <span style="color:#999;">id:${t.id}</span>
       <button type="button" class="btn btn-small btn-danger" onclick="removeGlobalToken('bark',${idx})">删除</button>
     </div>`;
   });
@@ -126,36 +135,35 @@ function renderGlobalNotifiers() {
   n.pushplus.forEach((t, idx) => {
     pushList.innerHTML += `<div class="token-row">
       <input type="text" value="${t.token}" onchange="updateGlobalToken('pushplus',${idx},this.value)">
-      <span>id:${t.id}</span>
+      <span style="color:#999;">id:${t.id}</span>
       <button type="button" class="btn btn-small btn-danger" onclick="removeGlobalToken('pushplus',${idx})">删除</button>
     </div>`;
   });
 }
-function addGlobalToken(type) {
+function addGlobalToken(type){
   let nextId = type + (configData.notifiers[type].length + 1);
-  configData.notifiers[type].push({id:nextId, token:''});
-  renderGlobalNotifiers();
+  configData.notifiers[type].push({id:nextId,token:''});
+  renderNotifierModal();
 }
-function removeGlobalToken(type, idx) {
+function removeGlobalToken(type, idx){
   configData.notifiers[type].splice(idx,1);
-  renderGlobalNotifiers();
+  renderNotifierModal();
 }
-function updateGlobalToken(type, idx, val) {
-  configData.notifiers[type][idx].token = val;
+function updateGlobalToken(type, idx, value){
+  configData.notifiers[type][idx].token = value;
 }
 
-// 群组渲染和管理
-function renderGroups() {
+// ----------- 群组列表管理 ----------
+function renderGroups(){
   let g = configData.groups;
   let html = '';
   g.forEach((group, idx) => {
     html += `<div class="group-card">
-      <div class="flex-between group-header">
-        <span>${group.name||''} <span style="color:#999;">[${group.id}]</span></span>
+      <div class="flex-between">
+        <span><b>${group.name||''}</b> <span style="color:#999;">[${group.id}]</span></span>
         <button class="btn btn-small btn-danger" onclick="deleteGroup(${idx})">删除群组</button>
       </div>
-      <div>
-        默认推送通道:
+      <div>默认推送通道:
         ${createNotifierSelect('default_notifiers',idx,group.default_notifiers||[])}
       </div>
       <div>
@@ -165,7 +173,6 @@ function renderGroups() {
         </div>
         <button class="btn btn-small btn-secondary" onclick="addKeyword(${idx})">添加关键字</button>
       </div>
-      <div class="actions"></div>
     </div>`;
   });
   document.getElementById('groupList').innerHTML = html;
@@ -173,14 +180,8 @@ function renderGroups() {
 function createNotifierSelect(type, groupIdx, valArr) {
   let notis = configData.notifiers;
   let opts = [];
-  for(let type in notis){
-    notis[type].forEach(t=>{
-      let id = t.id;
-      opts.push({id, type});
-    });
-  }
-  // email特殊
-  opts.push({id:'email', type:'email'});
+  for(let t in notis) notis[t].forEach(n=>opts.push({id:n.id,type:t}));
+  opts.push({id:'email',type:'email'});
   return `<select multiple onchange="updateGroupNotifier('${type}',${groupIdx},this)">
     ${opts.map(o=>`<option value="${o.id}"${valArr.includes(o.id)?' selected':''}>${pushTypes[o.type]}-${o.id}</option>`).join('')}
   </select>`;
@@ -189,47 +190,49 @@ function updateGroupNotifier(type, groupIdx, sel) {
   const vals = Array.from(sel.selectedOptions).map(x=>x.value);
   configData.groups[groupIdx][type] = vals;
 }
-function addKeyword(idx) {
+function addKeyword(idx){
   if(!configData.groups[idx].keywords) configData.groups[idx].keywords=[];
   configData.groups[idx].keywords.push({word:'',notifiers:[]});
   renderGroups();
 }
-function createKeywordRow(groupIdx, kidx, kwObj) {
+function createKeywordRow(groupIdx, kidx, kwObj){
   return `<div class="keyword-row">
     <input type="text" value="${kwObj.word||''}" placeholder="关键字" onchange="updateKeywordWord(${groupIdx},${kidx},this.value)">
     ${createNotifierSelect(`keywords[${kidx}].notifiers`,groupIdx,kwObj.notifiers||[])}
     <button class="btn btn-small btn-danger" onclick="removeKeyword(${groupIdx},${kidx})">删除</button>
   </div>`;
 }
-function updateKeywordWord(groupIdx, kidx, val) {
+function updateKeywordWord(groupIdx, kidx, val){
   configData.groups[groupIdx].keywords[kidx].word = val;
 }
-function removeKeyword(groupIdx, kidx) {
+function removeKeyword(groupIdx, kidx){
   configData.groups[groupIdx].keywords.splice(kidx,1);
   renderGroups();
 }
-function deleteGroup(idx) {
+function deleteGroup(idx){
   configData.groups.splice(idx,1);
   renderGroups();
 }
 
-// 群组添加表单
-document.getElementById('groupAddForm').onsubmit = function(e){
+// ----------- 添加群组表单 ----------
+document.getElementById('addGroupForm').onsubmit = function(e){
   e.preventDefault();
-  let id = document.getElementById('groupIdInput').value.trim();
-  let name = document.getElementById('groupNameInput').value.trim();
-  if(!id) {
-    document.getElementById('groupAddError').textContent="群组ID必填";
+  let gid = document.getElementById('modalGroupId').value.trim();
+  let name = document.getElementById('modalGroupName').value.trim();
+  if(!gid){
+    document.getElementById('addGroupError').textContent="群组ID必填";
     return;
   }
-  document.getElementById('groupAddError').textContent="";
-  configData.groups.push({id,name,default_notifiers:[],keywords:[]});
+  if(configData.groups.some(g=>g.id==gid)){
+    document.getElementById('addGroupError').textContent="群组ID已存在";
+    return;
+  }
+  configData.groups.push({id:gid,name,default_notifiers:[],keywords:[]});
+  closeAddGroupModal();
   renderGroups();
-  document.getElementById('groupIdInput').value="";
-  document.getElementById('groupNameInput').value="";
-}
+};
 
-// 全局通知通道表单
+// ----------- 推送通道表单 ----------
 document.getElementById('notifierForm').onsubmit = async function(e){
   e.preventDefault();
   let n = configData.notifiers;
@@ -247,34 +250,42 @@ document.getElementById('notifierForm').onsubmit = async function(e){
       body:JSON.stringify(n)
     });
     if(resp.ok){
-      document.getElementById('notifierError').textContent="保存成功";
+      document.getElementById('notifierSuccess').textContent="保存成功";
+      document.getElementById('notifierError').textContent="";
     } else {
       document.getElementById('notifierError').textContent="保存失败";
+      document.getElementById('notifierSuccess').textContent="";
     }
+    setTimeout(closeNotifierModal, 1200);
   } catch(e) {
     document.getElementById('notifierError').textContent="请求错误";
+    document.getElementById('notifierSuccess').textContent="";
   }
-}
+};
 
+// ----------- 全局保存 ----------
 function saveAllConfig(){
   document.getElementById('saveError').textContent="";
+  document.getElementById('saveSuccess').textContent="";
   fetch('/api/config', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(configData)
   }).then(r=>{
-    if(r.ok) document.getElementById('saveError').textContent="保存成功";
-    else document.getElementById('saveError').textContent="保存失败";
-  }).catch(e=>{
+    if(r.ok) {
+      document.getElementById('saveSuccess').textContent="保存成功";
+      setTimeout(()=>{document.getElementById('saveSuccess').textContent=""},1800);
+    } else {
+      document.getElementById('saveError').textContent="保存失败";
+    }
+  }).catch(()=>{
     document.getElementById('saveError').textContent="请求出错";
-  })
+  });
 }
-function showNotifiers(){
-  window.scrollTo({top:0,behavior:'smooth'});
-  document.querySelector('.notifier-add-form').scrollIntoView({behavior:'smooth'});
+function logout(){
+  location.href="/logout";
 }
 
-renderGlobalNotifiers();
 renderGroups();
 
 </script>
