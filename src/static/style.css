@@ -1,67 +1,10 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f9f9f9;
-}
-
-h1, h2 {
-    color: #333;
-}
-
-form {
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-input, textarea, button {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    box-sizing: border-box;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-button:hover {
-    background-color: #45a049;
-}
-
-.error {
-    color: red;
-    text-align: center;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 10px;
-    text-align: left;
-}
-
-th {
-    background-color: #f2f2f2;
-}
-
-.logout {
-    float: right;
-    text-decoration: none;
-    color: #555;
-    font-weight: bold;
-}
-.logout:hover {
-    color: #000;
-}
+body { background: #f7f9fa; font-family: 'Helvetica Neue', Arial, sans-serif; }
+nav { background:#fff; box-shadow:0 2px 8px #eee; padding:10px;}
+.nav-item { margin-right:20px; color: #333; text-decoration: none;}
+h1 { color: #333; font-size: 1.5em; margin: 20px 0;}
+input, select, button { margin:8px 0; padding:8px; border:1px solid #ddd; border-radius:4px;}
+button { background:#4CAF50; color:#fff; border:none;}
+button:hover { background:#388E3C;}
+section { background: #fff; margin: 20px 0; padding: 20px; border-radius:8px; box-shadow: 0 1px 4px #eee; }
+.login-container { max-width:400px; margin:80px auto; background: #fff; padding:40px; border-radius:8px; box-shadow:0 2px 8px #eee; }
+.error { color: red; margin-bottom:10px; }
