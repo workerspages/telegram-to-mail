@@ -11,7 +11,7 @@ services:
       - API_HASH=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     volumes:
       - ./session_data:/app/session_data
-      - ./data/config.json:/app/config.json
+      - ./data:/app/data
     restart: unless-stopped
     stdin_open: true
     tty: true
