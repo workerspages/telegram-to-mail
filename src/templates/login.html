@@ -6,20 +6,25 @@
   <title>登录 - Telegram 管理系统</title>
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="login-body">
   <div class="login-container">
-    <h2>登录管理系统</h2>
+    <div class="login-header">
+      <h2>欢迎回来</h2>
+      <p>登录您的 Telegram 管理中心</p>
+    </div>
     {% if error %}
-    <p class="error">{{ error }}</p>
+    <p class="error" style="text-align:center;">{{ error }}</p>
     {% endif %}
     <form method="post" action="{{ url_for('login') }}">
       <div class="form-group">
-        <input name="username" placeholder="用户名" required autofocus>
+        <label for="username">用户名</label>
+        <input id="username" name="username" type="text" required autofocus>
       </div>
       <div class="form-group">
-        <input name="password" type="password" placeholder="密码" required>
+        <label for="password">密码</label>
+        <input id="password" name="password" type="password" required>
       </div>
-      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">登录</button>
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.8rem;">安全登录</button>
     </form>
   </div>
 </body>
