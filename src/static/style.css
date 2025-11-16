@@ -57,12 +57,18 @@ body {
 }
 .group-card-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 1rem 1.5rem;
+  padding: 0 1.5rem 0 0; /* 右侧留空给删除按钮，左侧用 toggle 容器的 padding */
   cursor: pointer; user-select: none;
 }
 .group-card.expanded .group-card-header { border-bottom: 1px solid var(--border-color); }
-.group-card-header .group-title b { font-size: 1.15rem; }
-.group-card-header .group-title span { color: var(--text-light); margin-left: 0.5rem; font-size: 0.9em; }
+.group-card-header .group-title { 
+    font-size: 1.15rem; 
+    font-weight: 600;
+    flex-grow: 1; /* ★★★ 核心：让标题占据中间所有可用空间 */
+    text-align: left;
+    padding: 1rem 0;
+}
+.group-card-header .group-title span { color: var(--text-light); margin-left: 0.75rem; font-weight: 400; font-size: 0.9em; }
 
 /* --- 折叠动画核心样式 --- */
 .group-card-body {
@@ -72,12 +78,23 @@ body {
   transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
 }
 .group-card.expanded .group-card-body {
-  max-height: 2000px; /* 一个足够大的值以容纳内容 */
+  max-height: 2000px;
   padding: 1.5rem;
 }
-.header-controls { display: flex; align-items: center; gap: 0.5rem; }
+.header-controls { display: flex; align-items: center; }
+
+/* ★★★ 新增/修改：新的左侧展开按钮容器 ★★★ */
+.toggle-container {
+    padding: 1rem 1.5rem; /* 加长区域 */
+    align-self: stretch; /* 撑满父元素高度 */
+    display: flex;
+    align-items: center;
+    border-right: 1px solid var(--border-color);
+    margin-right: 1.5rem;
+}
 .toggle-icon { transition: transform 0.3s ease-in-out; }
 .group-card.expanded .toggle-icon { transform: rotate(180deg); }
+
 
 /* --- 按钮 --- */
 .btn {
