@@ -6,27 +6,29 @@ services:
     container_name: telegram-to-mail
     restart: unless-stopped
     
-    # 环境变量：所有敏感信息都集中在这里！
+    ports:
+      - "5000:5000"  # Web 管理系统端口
+
     environment:
-      # --- Telegram Userbot 配置 ---
+      # Telegram 配置
       - API_ID=12345678
       - API_HASH=0123456789abcdef0123456789abcdef
       - SESSION_NAME=telegram-to-mail
-      - TARGET_CHAT_IDS=12345678,-12345678 # 多个ID用逗号隔开
       - TO_EMAIL=your_target_email@example.com
 
-      # --- msmtp (邮件发送) 配置 ---
+      # msmtp 邮箱配置
       - MSMTP_HOST=smtp.qq.com
-      - MSMTP_PORT=587 # 可选，默认为 587
+      - MSMTP_PORT=587
       - MSMTP_FROM=your_sender_email@qq.com
       - MSMTP_USER=your_sender_email@qq.com
-      - MSMTP_PASSWORD=your_app_specific_password # 通常是应用专用密码
+      - MSMTP_PASSWORD=your_app_specific_password
 
-    # 数据卷挂载
+      # Web 管理系统账号密码（明文，程序中负责加密比对）
+      - WEB_USERNAME=admin
+      - WEB_PASSWORD=admin_password
+
     volumes:
-      # 只需持久化 session 文件即可
-      - ./session_data:/app
+      - ./session_data:/app/session_data
 
-    # 第一次运行时需要交互式输入验证码
     stdin_open: true
     tty: true
