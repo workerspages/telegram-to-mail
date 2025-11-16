@@ -1,34 +1,26 @@
 version: '3.8'
-
 services:
   telegram-to-mail:
     build: .
     container_name: telegram-to-mail
-    restart: unless-stopped
-    
     ports:
-      - "5000:5000"  # Web 管理系统端口
-
+      - "5000:5000"
     environment:
-      # Telegram 配置
-      - API_ID=12345678
-      - API_HASH=0123456789abcdef0123456789abcdef
-      - SESSION_NAME=telegram-to-mail
-      - TO_EMAIL=your_target_email@example.com
+      # Web管理系统登录
+      - WEB_USERNAME=admin
+      - WEB_PASSWORD=admin_password
 
-      # msmtp 邮箱配置
+      # 启动初始邮箱参数，web管理可覆盖
       - MSMTP_HOST=smtp.qq.com
       - MSMTP_PORT=587
       - MSMTP_FROM=your_sender_email@qq.com
       - MSMTP_USER=your_sender_email@qq.com
       - MSMTP_PASSWORD=your_app_specific_password
 
-      # Web 管理系统账号密码（明文，程序中负责加密比对）
-      - WEB_USERNAME=admin
-      - WEB_PASSWORD=admin_password
-
     volumes:
       - ./session_data:/app/session_data
+      - ./data/config.json:/app/config.json
 
+    restart: unless-stopped
     stdin_open: true
     tty: true
