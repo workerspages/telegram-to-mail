@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>Telegram 群组监听与推送配置管理</title>
+  <title>Telegram 配置中心</title>
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -10,10 +10,10 @@
 <div class="container">
   <header class="flex-between" style="margin-bottom: 2rem;">
     <h2>Telegram 配置中心</h2>
-    <button class="btn btn-secondary btn-small" onclick="logout()">退出登录</button>
+    <button class="btn btn-secondary" onclick="logout()">退出登录</button>
   </header>
 
-  <div class="flex-between" style="margin-bottom: 1rem;">
+  <div class="flex-between" style="margin-bottom: 1.5rem;">
     <h3>监听群组列表</h3>
     <div>
       <button class="btn btn-secondary" onclick="openNotifierModal()">推送通道设置</button>
@@ -24,7 +24,7 @@
   <div id="groupList"></div>
 
   <div class="flush-right" style="margin-top: 2rem;">
-    <button class="btn btn-primary" onclick="saveAllConfig()" style="min-width: 120px;">保存所有配置</button>
+    <button class="btn btn-primary" onclick="saveAllConfig()" style="min-width: 150px;">保存所有配置</button>
     <span class="error-msg" id="saveError"></span>
     <span class="success-msg" id="saveSuccess"></span>
   </div>
@@ -32,7 +32,7 @@
 
 <!-- 推送通道配置弹窗 -->
 <div id="notifierModalMask" class="modal-mask">
-  <div class="modal">
+  <div class="modal" style="max-width: 500px;">
     <button class="close" onclick="closeNotifierModal()">&times;</button>
     <h2>推送通道设置</h2>
     <form id="notifierForm">
@@ -43,19 +43,18 @@
       <div class="form-group"><label for="msmtp_pass">Password</label><input id="msmtp_pass" required type="password"></div>
       <div class="form-group"><label for="msmtp_from">From Address</label><input id="msmtp_from" required></div>
       
-      <h4 style="margin-top: 2rem;">Bark Tokens</h4>
+      <h4>Bark Tokens</h4>
       <div id="barkTokenList"></div>
       <button type="button" class="btn btn-secondary btn-small" onclick="addGlobalToken('bark')">添加 Bark Token</button>
 
-      <h4 style="margin-top: 2rem;">Pushplus Tokens</h4>
+      <h4>Pushplus Tokens</h4>
       <div id="pushTokenList"></div>
       <button type="button" class="btn btn-secondary btn-small" onclick="addGlobalToken('pushplus')">添加 Pushplus Token</button>
 
       <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeNotifierModal()">取消</button>
         <button type="submit" class="btn btn-primary">保存通道设置</button>
       </div>
-      <div class="error-msg" id="notifierError"></div>
-      <div class="success-msg" id="notifierSuccess"></div>
     </form>
   </div>
 </div>
@@ -64,19 +63,13 @@
 <div id="addGroupModalMask" class="modal-mask">
   <div class="modal">
     <button class="close" onclick="closeAddGroupModal()">&times;</button>
-    <h2 id="modalTitle">添加新群组</h2>
+    <h2>添加新群组</h2>
     <form id="addGroupForm">
+      <div class="form-group"><label for="modalGroupId">群组ID</label><input type="text" id="modalGroupId" required placeholder="例如: -1001234567890"></div>
+      <div class="form-group"><label for="modalGroupName">群组名称 (备注)</label><input type="text" id="modalGroupName" placeholder="例如: 公司技术交流群"></div>
       <div class="form-group">
-        <label for="modalGroupId">群组ID</label>
-        <input type="text" id="modalGroupId" required placeholder="例如: -1001234567890">
-      </div>
-      <div class="form-group">
-        <label for="modalGroupName">群组名称 (备注)</label>
-        <input type="text" id="modalGroupName" placeholder="例如: 公司技术交流群">
-      </div>
-      <div class="form-group">
-        <label for="modalDefaultNotify">默认推送通道</label>
-        <select id="modalDefaultNotify" multiple></select>
+        <label>默认推送通道</label>
+        <div id="modalDefaultNotifyContainer" class="checkbox-group"></div>
       </div>
       <div class="form-group">
         <label>关键字推送 (可选)</label>
@@ -96,19 +89,30 @@
 let configData = {{ config|tojson|safe }};
 const pushTypes = { bark: "Bark", pushplus: "Pushplus", email: "Email" };
 
-// 弹窗管理
+// ---------- 全局函数 ----------
+function getAvailableNotifiers() {
+    let options = [{ id: 'email', name: 'Email' }];
+    ['bark', 'pushplus'].forEach(key => {
+        if (configData.notifiers[key]) {
+            configData.notifiers[key].forEach(n => options.push({ id: n.id, name: `${pushTypes[key]}-${n.id}` }));
+        }
+    });
+    return options;
+}
+
+// ---------- 弹窗管理 ----------
 function openNotifierModal(){ renderNotifierModal(); document.getElementById('notifierModalMask').classList.add('active'); }
 function closeNotifierModal(){ document.getElementById('notifierModalMask').classList.remove('active'); }
 function openAddGroupModal(){
   document.getElementById('addGroupForm').reset();
   document.getElementById('addGroupModalMask').classList.add('active');
   document.getElementById('addGroupError').textContent="";
-  renderModalDefaultNotify();
+  renderModalDefaultNotify([]);
   renderKeywordRows([]);
 }
 function closeAddGroupModal(){ document.getElementById('addGroupModalMask').classList.remove('active'); }
 
-// 推送通道弹窗渲染
+// ---------- 推送通道弹窗渲染 ----------
 function renderNotifierModal(){
   let n = configData.notifiers;
   document.getElementById('msmtp_host').value = n.email.msmtp_host||'';
@@ -124,7 +128,7 @@ function renderNotifierModal(){
       listContainer.innerHTML += `<div class="token-row">
         <input type="text" value="${t.token}" placeholder="输入Token" onchange="updateGlobalToken('${type}', ${idx}, this.value)">
         <span style="color:#999; white-space:nowrap;">ID: ${t.id}</span>
-        <button type="button" class="btn btn-danger btn-small" onclick="removeGlobalToken('${type}', ${idx})">删除</button>
+        <button type="button" class="btn-icon-danger" onclick="removeGlobalToken('${type}', ${idx})">&times;</button>
       </div>`;
     });
   };
@@ -144,12 +148,12 @@ function updateGlobalToken(type, idx, value){
   configData.notifiers[type][idx].token = value;
 }
 
-// 群组列表主渲染
+// ---------- 群组列表主渲染 ----------
 function renderGroups(){
   let groups = configData.groups;
   let html = '';
   if (groups.length === 0) {
-    html = `<div class="group-card" style="text-align:center; color:#888;">暂无群组配置，请点击右上角“添加群组”进行设置。</div>`;
+    html = `<div class="group-card" style="text-align:center; color:#888; padding: 2rem;">暂无群组配置，请点击右上角“添加群组”进行设置。</div>`;
   } else {
     groups.forEach((group, idx) => {
       html += `<div class="group-card">
@@ -162,14 +166,14 @@ function renderGroups(){
         </div>
         <div class="form-group">
           <label>默认推送通道</label>
-          ${createNotifierSelect('default_notifiers', idx, group.default_notifiers || [])}
+          ${createNotifierCheckboxes(`group-${idx}-default`, group.default_notifiers || [], `updateGroupNotifier(${idx}, this)`)}
         </div>
         <div class="form-group">
           <label>关键字推送</label>
           <div id="kwlist-${idx}">
             ${(group.keywords || []).map((kw, kidx) => createKeywordRow(idx, kidx, kw)).join('')}
           </div>
-          <button class="btn btn-secondary btn-small" onclick="addKeywordToGroup(${idx})">添加关键字</button>
+          <button type="button" class="btn btn-secondary btn-small" onclick="addKeywordToGroup(${idx})">添加关键字</button>
         </div>
       </div>`;
     });
@@ -177,77 +181,64 @@ function renderGroups(){
   document.getElementById('groupList').innerHTML = html;
 }
 
-function createNotifierSelect(type, groupIdx, selectedValues) {
-    let notifiers = configData.notifiers;
-    let options = [];
-    // 确保 email 选项总是存在
-    options.push({id: 'email', name: 'Email'});
-    // 添加 bark 和 pushplus 的选项
-    ['bark', 'pushplus'].forEach(key => {
-        if (notifiers[key]) {
-            notifiers[key].forEach(n => options.push({id: n.id, name: `${pushTypes[key]}-${n.id}`}));
-        }
-    });
-
-    const onchangeAttr = type.includes('keywords')
-        ? `onchange="updateKeywordNotifier(${groupIdx}, ${type.match(/\[(\d+)\]/)[1]}, this)"`
-        : `onchange="updateGroupNotifier('${type}', ${groupIdx}, this)"`;
-
-    let selectHtml = `<select multiple ${onchangeAttr}>`;
-    selectHtml += options.map(opt => 
-        `<option value="${opt.id}"${selectedValues.includes(opt.id) ? ' selected' : ''}>${opt.name}</option>`
-    ).join('');
-    selectHtml += `</select>`;
-    return selectHtml;
+function createNotifierCheckboxes(containerId, selectedValues = [], onchangeCallback = '') {
+    const options = getAvailableNotifiers();
+    const checkboxesHtml = options.map(opt => `
+        <label>
+            <input type="checkbox" value="${opt.id}" name="${containerId}" 
+                   ${selectedValues.includes(opt.id) ? 'checked' : ''}
+                   onchange="${onchangeCallback}">
+            ${opt.name}
+        </label>
+    `).join('');
+    return `<div id="${containerId}" class="checkbox-group">${checkboxesHtml}</div>`;
 }
 
-function updateGroupNotifier(type, groupIdx, sel) {
-  configData.groups[groupIdx][type] = Array.from(sel.selectedOptions).map(o => o.value);
-}
-function updateKeywordNotifier(groupIdx, kidx, sel) {
-  configData.groups[groupIdx].keywords[kidx].notifiers = Array.from(sel.selectedOptions).map(o => o.value);
+function updateGroupNotifier(groupIdx, checkbox) {
+    const containerId = `group-${groupIdx}-default`;
+    const checked = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
+    configData.groups[groupIdx].default_notifiers = checked;
 }
 
+function updateKeywordNotifier(groupIdx, kidx, checkbox) {
+    const containerId = `group-${groupIdx}-kw-${kidx}`;
+    const checked = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
+    configData.groups[groupIdx].keywords[kidx].notifiers = checked;
+}
+
+function createKeywordRow(groupIdx, kidx, kwObj){
+  const containerId = `group-${groupIdx}-kw-${kidx}`;
+  return `<div class="keyword-row">
+    <input type="text" value="${kwObj.word||''}" placeholder="关键字" onchange="updateKeywordWord(${groupIdx}, ${kidx}, this.value)">
+    ${createNotifierCheckboxes(containerId, kwObj.notifiers || [], `updateKeywordNotifier(${groupIdx}, ${kidx}, this)`)}
+    <button type="button" class="btn-icon-danger" onclick="removeKeyword(${groupIdx}, ${kidx})">&times;</button>
+  </div>`;
+}
 function addKeywordToGroup(groupIdx){
   if(!configData.groups[groupIdx].keywords) configData.groups[groupIdx].keywords=[];
   configData.groups[groupIdx].keywords.push({word:'', notifiers:[]});
   renderGroups();
 }
-
-function createKeywordRow(groupIdx, kidx, kwObj){
-  return `<div class="keyword-row">
-    <input type="text" value="${kwObj.word||''}" placeholder="关键字" onchange="updateKeywordWord(${groupIdx}, ${kidx}, this.value)">
-    ${createNotifierSelect(`keywords[${kidx}].notifiers`, groupIdx, kwObj.notifiers || [])}
-    <button type="button" class="btn btn-danger btn-small" onclick="removeKeyword(${groupIdx}, ${kidx})">删除</button>
-  </div>`;
-}
-function updateKeywordWord(groupIdx, kidx, val){
-  configData.groups[groupIdx].keywords[kidx].word = val;
-}
-function removeKeyword(groupIdx, kidx){
-  configData.groups[groupIdx].keywords.splice(kidx,1);
-  renderGroups();
-}
+function updateKeywordWord(groupIdx, kidx, val){ configData.groups[groupIdx].keywords[kidx].word = val; }
+function removeKeyword(groupIdx, kidx){ configData.groups[groupIdx].keywords.splice(kidx,1); renderGroups(); }
 function deleteGroup(idx){
-  if (confirm('确定要删除这个群组的配置吗？')) {
+  if (confirm('确定要删除这个群组的配置吗？此操作不可恢复。')) {
     configData.groups.splice(idx,1);
     renderGroups();
   }
 }
 
-// 添加群组弹窗逻辑
-function renderModalDefaultNotify(){
-  let sel = document.getElementById('modalDefaultNotify');
-  sel.innerHTML = '';
-  let opts = [{id:'email', name:'Email'}];
-  ['bark', 'pushplus'].forEach(key => {
-    if(configData.notifiers[key]) {
-      configData.notifiers[key].forEach(n => opts.push({id:n.id, name:`${pushTypes[key]}-${n.id}`}));
-    }
-  });
-  sel.innerHTML = opts.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+// ---------- 添加群组弹窗逻辑 ----------
+function renderModalDefaultNotify(selectedValues){
+  const container = document.getElementById('modalDefaultNotifyContainer');
+  container.innerHTML = getAvailableNotifiers().map(opt => `
+      <label>
+          <input type="checkbox" value="${opt.id}" name="modal-default-notify"
+                 ${selectedValues.includes(opt.id) ? 'checked' : ''}>
+          ${opt.name}
+      </label>
+  `).join('');
 }
-
 let addGroupKeywords = [];
 function renderKeywordRows(keywords){
   addGroupKeywords = keywords;
@@ -255,114 +246,80 @@ function renderKeywordRows(keywords){
   kwDiv.innerHTML = keywords.map((kw, idx) => `
     <div class="keyword-row">
       <input type="text" value="${kw.word||''}" onchange="updateNewKeywordWord(${idx}, this.value)" placeholder="关键字">
-      ${createNewKeywordNotifySelect(idx, kw.notifiers||[])}
-      <button type="button" class="btn btn-danger btn-small" onclick="removeKeywordRow(${idx})">删除</button>
+      ${createNewKeywordNotifyCheckboxes(idx, kw.notifiers||[])}
+      <button type="button" class="btn-icon-danger" onclick="removeKeywordRow(${idx})">&times;</button>
     </div>`
   ).join('');
+}
+function createNewKeywordNotifyCheckboxes(kidx, vals){
+  const containerId = `modal-kw-${kidx}`;
+  const onchange = `updateNewKeywordNotify(${kidx})`;
+  return createNotifierCheckboxes(containerId, vals, onchange);
 }
 function addKeywordRow(){
   addGroupKeywords.push({word:'', notifiers:[]});
   renderKeywordRows(addGroupKeywords);
 }
-function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val; }
-function createNewKeywordNotifySelect(kidx, vals){
-  let opts = [{id:'email', name:'Email'}];
-  ['bark', 'pushplus'].forEach(key => {
-    if(configData.notifiers[key]) {
-      configData.notifiers[key].forEach(n => opts.push({id:n.id, name:`${pushTypes[key]}-${n.id}`}));
-    }
-  });
-  return `<select multiple onchange="updateNewKeywordNotify(${kidx}, this)">` +
-    opts.map(o => `<option value="${o.id}"${vals.includes(o.id)?' selected':''}>${o.name}</option>`).join('') +
-    `</select>`;
-}
-function updateNewKeywordNotify(idx, sel){
-  addGroupKeywords[idx].notifiers = Array.from(sel.selectedOptions).map(x => x.value);
-}
 function removeKeywordRow(idx){
   addGroupKeywords.splice(idx, 1);
   renderKeywordRows(addGroupKeywords);
 }
+function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val; }
+function updateNewKeywordNotify(idx){
+  const containerId = `modal-kw-${idx}`;
+  addGroupKeywords[idx].notifiers = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
+}
+
+// ---------- 表单提交与保存 ----------
 document.getElementById('addGroupForm').onsubmit = function(e){
   e.preventDefault();
-  let gid = document.getElementById('modalGroupId').value.trim();
-  let name = document.getElementById('modalGroupName').value.trim();
-  let defaultNotify = Array.from(document.getElementById('modalDefaultNotify').selectedOptions).map(x=>x.value);
-  if(!gid){
-    document.getElementById('addGroupError').textContent="群组ID是必填项。";
-    return;
-  }
-  if(configData.groups.some(g=>g.id==gid)){
-    document.getElementById('addGroupError').textContent="该群组ID已存在，请勿重复添加。";
-    return;
-  }
+  const gid = document.getElementById('modalGroupId').value.trim();
+  const name = document.getElementById('modalGroupName').value.trim();
+  const defaultNotify = Array.from(document.querySelectorAll('#modalDefaultNotifyContainer input:checked')).map(el => el.value);
+  if(!gid) { document.getElementById('addGroupError').textContent="群组ID是必填项。"; return; }
+  if(configData.groups.some(g => g.id === gid)) { document.getElementById('addGroupError').textContent="该群组ID已存在，请勿重复添加。"; return; }
+  
   configData.groups.push({
-    id: gid,
-    name: name,
-    default_notifiers: defaultNotify,
+    id: gid, name: name, default_notifiers: defaultNotify,
     keywords: JSON.parse(JSON.stringify(addGroupKeywords))
   });
   closeAddGroupModal();
   renderGroups();
 };
 
-// 表单提交 (Email, Bark, Pushplus)
 document.getElementById('notifierForm').onsubmit = async function(e){
   e.preventDefault();
   let n = configData.notifiers;
   n.email = {
-    msmtp_host:document.getElementById('msmtp_host').value,
-    msmtp_port:document.getElementById('msmtp_port').value,
-    msmtp_user:document.getElementById('msmtp_user').value,
-    msmtp_pass:document.getElementById('msmtp_pass').value,
-    msmtp_from:document.getElementById('msmtp_from').value
+    msmtp_host: document.getElementById('msmtp_host').value, msmtp_port: document.getElementById('msmtp_port').value,
+    msmtp_user: document.getElementById('msmtp_user').value, msmtp_pass: document.getElementById('msmtp_pass').value,
+    msmtp_from: document.getElementById('msmtp_from').value
   };
-  
-  const successMsg = document.getElementById('notifierSuccess');
-  const errorMsg = document.getElementById('notifierError');
-  successMsg.textContent = "";
-  errorMsg.textContent = "";
-
   try {
-    let resp = await fetch('/api/notifiers', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(n)
-    });
+    let resp = await fetch('/api/notifiers', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(n) });
     if(resp.ok){
-      successMsg.textContent="保存成功！";
-      setTimeout(closeNotifierModal, 1200);
-    } else {
-      errorMsg.textContent="保存失败，请检查网络或后端服务。";
-    }
-  } catch(e) {
-    errorMsg.textContent="请求错误，无法连接到服务器。";
-  }
+      alert('推送通道设置已保存！');
+      closeNotifierModal();
+    } else { alert('保存失败！'); }
+  } catch(e) { alert('请求错误！'); }
 };
 
-// 全局保存
 function saveAllConfig(){
   const successMsg = document.getElementById('saveSuccess');
   const errorMsg = document.getElementById('saveError');
-  successMsg.textContent = "";
-  errorMsg.textContent = "";
+  successMsg.textContent = ""; errorMsg.textContent = "";
 
-  fetch('/api/config', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(configData)
-  }).then(r => {
+  fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(configData) })
+  .then(r => {
     if(r.ok) {
       successMsg.textContent = "所有配置已成功保存！";
-      setTimeout(() => { successMsg.textContent = "" }, 2000);
-    } else {
-      errorMsg.textContent = "保存失败。";
-    }
+      setTimeout(() => { successMsg.textContent = "" }, 2500);
+    } else { errorMsg.textContent = "保存失败。"; }
   }).catch(() => { errorMsg.textContent = "请求出错。"; });
 }
 function logout(){ location.href="/logout"; }
 
-// 初始渲染
+// ---------- 初始渲染 ----------
 renderGroups();
 </script>
 </body>
