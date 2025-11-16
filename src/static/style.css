@@ -11,7 +11,8 @@
   --card-bg: #ffffff;
   --text-color: #343a40;
   --border-color: #dee2e6;
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow: 0 4px
+ 12px rgba(0, 0, 0, 0.08);
   --border-radius: 8px;
 }
 
@@ -21,175 +22,111 @@ body {
   color: var(--text-color);
   margin: 0;
   padding: 2rem 1rem;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* --- 容器与卡片布局 --- */
-.container, .login-container {
+.container {
   max-width: 900px;
   margin: 0 auto;
   background: var(--card-bg);
-  padding: 2rem;
+  padding: 2.5rem;
   border-radius: var(--border-radius);
   box-shadow: var(--shadow);
 }
 
 .login-container {
-  max-width: 420px;
-  margin-top: 5rem;
+  max-width: 400px;
+  margin: 5rem auto 0;
+  padding: 2.5rem;
 }
 
 .group-card {
-  background: #fff;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  transition: box-shadow 0.2s ease-in-out;
-}
-.group-card:hover {
-  box-shadow: var(--shadow);
 }
 
 /* --- 标题与文本 --- */
-h2 {
-  color: var(--text-color);
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  font-weight: 600;
-}
+h2, h3, h4 { color: var(--text-color); font-weight: 600; }
+h2 { margin-top: 0; margin-bottom: 1.5rem; }
+h3 { margin-top: 0; margin-bottom: 1rem; font-size: 1.25rem; }
+h4 { margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;}
 
-.error-msg, .error {
-  color: var(--danger-color);
-  font-size: 0.9em;
-  margin-top: 0.5rem;
-  display: block;
-}
 
-.success-msg {
-  color: var(--success-color);
-  font-size: 0.9em;
-  margin-top: 0.5rem;
-  display: block;
-}
-
+.error-msg, .error { color: var(--danger-color); font-size: 0.9em; margin-top: 0.5rem; display: block; }
+.success-msg { color: var(--success-color); font-size: 0.9em; margin-top: 0.5rem; display: block; }
 
 /* --- 按钮样式 --- */
 .btn {
-  display: inline-block;
-  font-weight: 500;
-  text-align: center;
-  vertical-align: middle;
-  cursor: pointer;
-  user-select: none;
-  background-color: transparent;
-  border: 1px solid transparent;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  border-radius: var(--border-radius);
-  transition: all 0.2s ease-in-out;
-  text-decoration: none;
-  color: #fff;
+  display: inline-block; font-weight: 500; text-align: center; cursor: pointer; user-select: none;
+  border: 1px solid transparent; padding: 0.6rem 1.2rem; font-size: 0.95rem;
+  border-radius: var(--border-radius); transition: all 0.2s ease-in-out;
+  text-decoration: none; color: #fff;
 }
-
 .btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); }
 .btn-primary:hover { background-color: var(--primary-hover); border-color: var(--primary-hover); }
-
 .btn-secondary { background-color: var(--secondary-color); border-color: var(--secondary-color); }
 .btn-secondary:hover { background-color: var(--secondary-hover); border-color: var(--secondary-hover); }
-
 .btn-danger { background-color: var(--danger-color); border-color: var(--danger-color); }
 .btn-danger:hover { background-color: var(--danger-hover); border-color: var(--danger-hover); }
-
-.btn-small { padding: 0.25rem 0.75rem; font-size: 0.875rem; }
-
-button:disabled, .btn[disabled] { background-color: #ccc; border-color: #ccc; cursor: not-allowed; }
+.btn-small { padding: 0.3rem 0.8rem; font-size: 0.875rem; }
+.btn-icon-danger {
+    background: none; border: none; color: var(--danger-color); font-size: 1.2em;
+    padding: 0.5rem; line-height: 1; cursor: pointer; border-radius: 50%;
+}
+.btn-icon-danger:hover { background-color: #fbebee; }
 
 /* --- 表单元素 --- */
-.form-group {
-  margin-bottom: 1rem;
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+input[type="text"], input[type="password"] {
+  display: block; width: 100%; padding: 0.75rem; font-size: 1rem;
+  color: var(--text-color); background-color: #fff;
+  border: 1px solid var(--border-color); border-radius: var(--border-radius);
+  box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus, input[type="password"]:focus {
+  border-color: var(--primary-color); outline: 0; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+/* --- 复选框多选组件 --- */
+.checkbox-group {
+    border: 1px solid var(--border-color); border-radius: var(--border-radius);
+    padding: 0.75rem; max-height: 150px; overflow-y: auto; background: #fdfdfd;
 }
-
-input[type="text"], input[type="password"], select {
-  display: block;
-  width: 100%;
-  padding: 0.75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: var(--text-color);
-  background-color: #fff;
-  background-clip: padding-box;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  box-sizing: border-box;
-  transition: border-color 0.2s, box-shadow 0.2s;
+.checkbox-group label {
+    display: block; font-weight: normal; margin-bottom: 0.5rem; cursor: pointer;
+    display: flex; align-items: center;
 }
+.checkbox-group input[type="checkbox"] { margin-right: 0.75rem; }
+.checkbox-group label:last-child { margin-bottom: 0; }
 
-input[type="text"]:focus, input[type="password"]:focus, select:focus {
-  border-color: var(--primary-color);
-  outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-select[multiple] {
-  height: auto;
-  min-height: 100px;
-}
-
-/* --- 功能类 --- */
+/* --- 功能类与对齐 --- */
 .flush-right { text-align: right; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 .keyword-row, .token-row { display: flex; gap: 10px; align-items: center; margin-bottom: 0.75rem; }
-.keyword-row input { flex: 1; }
+.keyword-row input[type="text"] { flex-grow: 1; }
+.keyword-row .checkbox-group { flex-grow: 2; }
+.token-row input { flex-grow: 1; }
 
 /* --- 模态框 (Modal) --- */
 .modal-mask {
-  position: fixed;
-  left: 0; top: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); z-index: 1000;
+  display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0s 0.3s;
 }
-.modal-mask.active {
-  opacity: 1;
-  visibility: visible;
-}
-
+.modal-mask.active { opacity: 1; visibility: visible; transition: opacity 0.3s ease; }
 .modal {
-  background: var(--card-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  max-width: 600px;
-  width: 95vw;
-  padding: 2rem;
-  position: relative;
-  transform: scale(0.95);
-  transition: transform 0.3s ease;
+  background: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--shadow); max-width: 600px;
+  width: 95vw; padding: 2.5rem; position: relative; transform: scale(0.95) translateY(10px);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
-.modal-mask.active .modal {
-  transform: scale(1);
-}
-
-.modal h2 { margin-bottom: 1rem; }
+.modal-mask.active .modal { transform: scale(1) translateY(0); }
+.modal h2 { margin-bottom: 1.5rem; }
 .modal .close {
-  position: absolute; right: 1rem; top: 1rem;
-  font-size: 1.5rem; cursor: pointer; color: #888;
-  border: none; background: none; padding: 0;
+  position: absolute; right: 1rem; top: 1rem; font-size: 1.8rem; cursor: pointer; color: #888;
+  border: none; background: none; padding: 0; line-height: 1;
 }
 .modal .close:hover { color: #333; }
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
+.modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem; }
