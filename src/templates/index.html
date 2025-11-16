@@ -192,7 +192,9 @@ function renderGroups(expandedIndex = -1) {
             <span>[ID: ${group.id}]</span>
           </div>
           <div class="header-controls">
-            <button class="btn-icon" onclick="event.stopPropagation(); deleteGroup(${idx})" title="删除群组">
+            <!-- ★★★ FIX START ★★★ -->
+            <button class="btn-icon" onclick="deleteGroup(event, ${idx})" title="删除群组">
+            <!-- ★★★ FIX END ★★★ -->
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger-color);"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
             <div class="toggle-icon">
@@ -265,12 +267,16 @@ function removeKeyword(groupIdx, kidx){
     configData.groups[groupIdx].keywords.splice(kidx,1); 
     renderGroups(groupIdx); // Re-render and keep the current group expanded
 }
-function deleteGroup(idx){
-  if (confirm('确定要删除这个群组的配置吗？此操作不可恢复。')) {
-    configData.groups.splice(idx,1);
-    renderGroups();
-  }
+
+// ★★★ FIX START ★★★
+function deleteGroup(event, idx) {
+    event.stopPropagation(); // Stop the click from bubbling up to the header
+    if (confirm('确定要删除这个群组的配置吗？此操作不可恢复。')) {
+        configData.groups.splice(idx, 1);
+        renderGroups();
+    }
 }
+// ★★★ FIX END ★★★
 
 // ---------- 添加群组弹窗逻辑 ----------
 function renderModalDefaultNotify(selectedValues){
@@ -301,4 +307,89 @@ function renderKeywordRows(keywords){
 }
 function createNewKeywordNotifyCheckboxes(kidx, vals){
   const containerId = `modal-kw-${kidx}`;
-  const onchange = `updateNewKeywordNo
+  const onchange = `updateNewKeywordNotify(${kidx})`;
+  return createNotifierCheckboxes(containerId, vals, onchange);
+}
+function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[]}); renderKeywordRows(addGroupKeywords); }
+function removeKeywordRow(idx){ addGroupKeywords.splice(idx, 1); renderKeywordRows(addGroupKeywords); }
+function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val; }
+function updateNewKeywordNotify(idx){
+  const containerId = `modal-kw-${idx}`;
+  addGroupKeywords[idx].notifiers = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
+}
+
+// ---------- 表单提交与保存 ----------
+document.getElementById('addGroupForm').onsubmit = function(e){
+  e.preventDefault();
+  const gid = document.getElementById('modalGroupId').value.trim();
+  const name = document.getElementById('modalGroupName').value.trim();
+  const defaultNotify = Array.from(document.querySelectorAll('#modalDefaultNotifyContainer input:checked')).map(el => el.value);
+  if(!gid) { document.getElementById('addGroupError').textContent="群组ID是必填项。"; return; }
+  if(configData.groups.some(g => g.id === gid)) { document.getElementById('addGroupError').textContent="该群组ID已存在，请勿重复添加。"; return; }
+  
+  configData.groups.push({
+    id: gid, name: name, default_notifiers: defaultNotify,
+    keywords: JSON.parse(JSON.stringify(addGroupKeywords))
+  });
+  
+  const newIndex = configData.groups.length - 1;
+  closeAddGroupModal();
+  renderGroups(newIndex); // Render with the new group expanded
+};
+
+document.getElementById('notifierForm').onsubmit = async function(e){
+  e.preventDefault();
+  const statusSpan = document.getElementById('notifierStatus');
+  statusSpan.textContent = "正在保存...";
+  statusSpan.style.color = 'var(--text-light)';
+
+  let n = configData.notifiers;
+  n.email = {
+    msmtp_host: document.getElementById('msmtp_host').value, msmtp_port: document.getElementById('msmtp_port').value,
+    msmtp_user: document.getElementById('msmtp_user').value, msmtp_pass: document.getElementById('msmtp_pass').value,
+    msmtp_from: document.getElementById('msmtp_from').value
+  };
+  try {
+    let resp = await fetch('/api/notifiers', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(n) });
+    if(resp.ok){
+      statusSpan.textContent = "保存成功！";
+      statusSpan.style.color = 'var(--success-color)';
+      setTimeout(closeNotifierModal, 1000);
+    } else { 
+      statusSpan.textContent = "保存失败，请检查网络或服务。";
+      statusSpan.style.color = 'var(--danger-color)';
+    }
+  } catch(e) { 
+      statusSpan.textContent = "请求错误，无法连接服务器。";
+      statusSpan.style.color = 'var(--danger-color)';
+  }
+};
+
+function saveAllConfig(){
+  const statusSpan = document.getElementById('saveStatus');
+  statusSpan.textContent = "正在保存...";
+  statusSpan.style.color = 'var(--text-light)';
+
+  fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(configData) })
+  .then(r => {
+    if(r.ok) {
+      statusSpan.textContent = "所有配置已成功保存！";
+      statusSpan.style.color = 'var(--success-color)';
+    } else {
+      statusSpan.textContent = "保存失败。";
+      statusSpan.style.color = 'var(--danger-color)';
+    }
+  }).catch(() => {
+    statusSpan.textContent = "请求出错。";
+    statusSpan.style.color = 'var(--danger-color)';
+  }).finally(() => {
+      setTimeout(() => { statusSpan.textContent = "" }, 3000);
+  });
+}
+function logout(){ location.href="/logout"; }
+
+// ---------- 初始渲染 ----------
+renderGroups();
+</script>
+</body>
+</html>
