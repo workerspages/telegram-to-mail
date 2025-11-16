@@ -79,17 +79,16 @@ async def send_email(email_config, subject, body, attachment=None, filename=None
     else:
         print("Email sent successfully.")
 
-async def send_bark(token, title, content):
+async def send_bark(server_url, token, title, content):
     """发送 Bark 推送"""
-    # Bark API 期望的 URL 格式是 server/key/title/content
-    # 我们假设用户只填写 key (token)
-    url = f"https://api.day.app/{token}/{title}/{content}"
+    base_url = server_url.rstrip('/')
+    url = f"{base_url}/{token}/{title}/{content}"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             if response.status != 200:
-                print(f"Failed to send Bark notification. Status: {response.status}, Response: {await response.text()}")
+                print(f"Failed to send Bark notification to {base_url}. Status: {response.status}, Response: {await response.text()}")
             else:
-                print("Bark notification sent successfully.")
+                print(f"Bark notification sent successfully via {base_url}.")
 
 async def send_pushplus(token, title, content):
     """发送 Pushplus 推送"""
@@ -109,8 +108,9 @@ def get_notifier_tokens(config, notifier_ids, method):
     notifiers_config = config.get('notifiers', {})
     
     if method == 'bark' and 'bark' in notifiers_config:
+        bark_tokens_list = notifiers_config['bark'].get('tokens', [])
         for nid in notifier_ids:
-            for bark_notifier in notifiers_config['bark']:
+            for bark_notifier in bark_tokens_list:
                 if bark_notifier.get('id') == nid:
                     tokens.append(bark_notifier.get('token'))
                     
@@ -130,9 +130,13 @@ async def process_notifications(config, notifiers_list, subject, body):
     for nid in notifiers_list:
         try:
             if nid.startswith('bark'):
+                bark_config = config.get('notifiers', {}).get('bark', {})
+                server_url = bark_config.get('server_url') or "https://api.day.app"
+                
                 tokens = get_notifier_tokens(config, [nid], 'bark')
                 for token in tokens:
-                    await send_bark(token, subject, body)
+                    await send_bark(server_url, token, subject, body)
+
             elif nid.startswith('pp'):
                 tokens = get_notifier_tokens(config, [nid], 'pushplus')
                 for token in tokens:
@@ -141,8 +145,6 @@ async def process_notifications(config, notifiers_list, subject, body):
                 if 'email' in config.get('notifiers', {}):
                     await send_email(config['notifiers']['email'], subject, body)
         except Exception as e:
-            # ★★★ 核心容错机制 ★★★
-            # 捕获异常，打印错误日志，但继续处理下一个通知，不会中断流程。
             print(f"[ERROR] Failed to process notifier '{nid}'. Reason: {e}")
 
 async def handle_message(event):
@@ -216,7 +218,8 @@ async def main():
     except Exception as e:
         print(f"An error occurred while running the client: {e}")
     finally:
-        await client.disconnect()
+        if client.is_connected():
+            await client.disconnect()
         print("Telegram client disconnected.")
 
 if __name__ == '__main__':
