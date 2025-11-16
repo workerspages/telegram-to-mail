@@ -1,4 +1,4 @@
-import asyncio, os, sys, json, aiohttp
+import asyncio, os, json, aiohttp
 from telethon import TelegramClient, events
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -6,20 +6,39 @@ from email.mime.base import MIMEBase
 from email import encoders
 
 CONFIG_FILE = 'config.json'
-SESSION_NAME = 'telegram-session'
-client = None
+SESSION_DIR = './session_data'
+SESSION_NAME = os.path.join(SESSION_DIR, 'telegram.session')
 
 def load_config():
     with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-async def send_email(cfg, subject, body, attachment=None, filename=None):
+def update_msmtp(emailcfg):
+    conf = f"""defaults
+auth           on
+tls            on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+logfile        /dev/stdout
+
+account        default
+host           {emailcfg['msmtp_host']}
+port           {emailcfg.get('msmtp_port','587')}
+from           {emailcfg['msmtp_from']}
+user           {emailcfg['msmtp_user']}
+password       {emailcfg['msmtp_pass']}
+"""
+    with open('/etc/msmtprc', 'w') as f:
+        f.write(conf)
+    os.chmod('/etc/msmtprc', 0o600)
+
+async def send_email(emailcfg, subject, body, attachment=None, filename=None):
+    update_msmtp(emailcfg)
     msg = MIMEMultipart()
-    msg['From'] = cfg['from']
-    msg['To'] = cfg['from']
+    msg['From'] = emailcfg['msmtp_from']
+    msg['To'] = emailcfg['msmtp_from']
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain', 'utf-8'))
-    if attachment: 
+    if attachment:
         part = MIMEBase('application', 'octet-stream')
         part.set_payload(attachment)
         encoders.encode_base64(part)
@@ -28,9 +47,7 @@ async def send_email(cfg, subject, body, attachment=None, filename=None):
     raw_bytes = msg.as_bytes()
     proc = await asyncio.create_subprocess_exec(
         'msmtp', '-t',
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+        stdin=asyncio.subprocess.PIPE
     )
     await proc.communicate(input=raw_bytes)
 
@@ -47,10 +64,16 @@ async def send_pushplus(token, title, content):
 
 def get_notifier_token_list(config, ids, method):
     arr = []
-    for nid in ids:
-        for nt in config['notifiers'][method]:
-            if nt['id'] == nid:
-                arr.append(nt['token'])
+    if method == 'bark':
+        for nid in ids:
+            for nt in config['notifiers']['bark']:
+                if nt['id'] == nid:
+                    arr.append(nt['token'])
+    if method == 'pushplus':
+        for nid in ids:
+            for nt in config['notifiers']['pushplus']:
+                if nt['id'] == nid:
+                    arr.append(nt['token'])
     return arr
 
 async def handle_message(event):
@@ -61,10 +84,9 @@ async def handle_message(event):
     msg = event.message.text or ""
     subject = "【Telegram】新消息"
     sender = await event.message.get_sender()
-    senderinfo = f"{sender.first_name or ''} {sender.last_name or ''} ({sender.username or ''})" if sender else ""
+    senderinfo = f"{sender.first_name or ''} {sender.last_name or ''} ({getattr(sender, 'username', '')})" if sender else ""
     body = f"From: {senderinfo}\n\n{msg}"
 
-    # 优先keyword
     for kw in group.get('keywords', []):
         if kw['word'] in msg:
             for nid in kw['notifiers']:
@@ -74,7 +96,8 @@ async def handle_message(event):
                 elif nid.startswith('pp'):
                     for t in get_notifier_token_list(config, [nid], 'pushplus'):
                         await send_pushplus(t, subject, body)
-    # 默认推送
+                elif nid == "email":
+                    await send_email(config['notifiers']['email'], subject, body)
     for nid in group.get('default_notifiers', []):
         if nid.startswith('bark'):
             for t in get_notifier_token_list(config, [nid], 'bark'):
@@ -84,19 +107,16 @@ async def handle_message(event):
                 await send_pushplus(t, subject, body)
         elif nid == "email":
             await send_email(config['notifiers']['email'], subject, body)
-    await send_email(config['notifiers']['email'], subject, body)
 
 async def main():
     config = load_config()
     API_ID = int(os.getenv('API_ID', '12345678'))
     API_HASH = os.getenv('API_HASH', '0123456789abcdef0123456789abcdef')
-    global client
-    client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
-    @client.on(events.NewMessage)
-    async def _(event):
-        await handle_message(event)
-    await client.start()
-    await client.run_until_disconnected()
+    async with TelegramClient(SESSION_NAME, API_ID, API_HASH) as client:
+        @client.on(events.NewMessage)
+        async def _(event):
+            await handle_message(event)
+        await client.run_until_disconnected()
 
 if __name__ == '__main__':
     asyncio.run(main())
