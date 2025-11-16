@@ -57,10 +57,10 @@ body {
 }
 .group-card-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
   cursor: pointer; user-select: none;
 }
-.group-card.expanded .group-card-header { border-bottom-color: var(--border-color); }
+.group-card.expanded .group-card-header { border-bottom: 1px solid var(--border-color); }
 .group-card-header .group-title b { font-size: 1.15rem; }
 .group-card-header .group-title span { color: var(--text-light); margin-left: 0.5rem; font-size: 0.9em; }
 
@@ -74,13 +74,10 @@ body {
 .group-card.expanded .group-card-body {
   max-height: 2000px; /* 一个足够大的值以容纳内容 */
   padding: 1.5rem;
-  border-top: 1px solid var(--border-color);
 }
-
 .header-controls { display: flex; align-items: center; gap: 0.5rem; }
 .toggle-icon { transition: transform 0.3s ease-in-out; }
 .group-card.expanded .toggle-icon { transform: rotate(180deg); }
-
 
 /* --- 按钮 --- */
 .btn {
@@ -114,7 +111,6 @@ input[type="text"], input[type="password"] {
 input[type="text"]:focus, input[type="password"]:focus {
   border-color: var(--primary-color); outline: 0; box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
 }
-
 .checkbox-group {
     border: 1px solid var(--border-color); border-radius: 8px;
     padding: 0.75rem; max-height: 120px; overflow-y: auto; background: #fafbfc;
@@ -134,17 +130,28 @@ input[type="text"]:focus, input[type="password"]:focus {
   transform: translateY(10px) scale(0.98); transition: all 0.3s ease;
 }
 .modal-mask.active .modal { transform: translateY(0) scale(1); }
-.modal-header {
-  padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color);
-}
+.modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); }
 .modal-header h2 { margin: 0; font-size: 1.2rem; }
 .modal-body { padding: 1.5rem; max-height: 60vh; overflow-y: auto; }
 .modal .close { position: absolute; right: 1rem; top: 1rem; font-size: 1.8rem; cursor: pointer; color: #aaa; border: none; background: none; }
 .modal .close:hover { color: #333; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; background-color: #fbfcfd; border-top: 1px solid var(--border-color); }
-.modal-status { padding: 0 1.5rem 0.5rem; font-size: 0.9em; }
+.modal-status { padding: 0 1.5rem 0.5rem; font-size: 0.9em; min-height: 1.2em; }
 
-/* --- Token 和 Keyword 的布局样式 --- */
+/* --- Token, Keyword, 和 Notifier Section 布局样式 --- */
+.notifier-section {
+  background: linear-gradient(to right, var(--card-bg) 0%, #fcfdff 100%);
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--border-radius);
+}
+.notifier-section h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
 .token-row { display: flex; gap: 10px; align-items: center; margin-bottom: 0.75rem; }
 .token-row input { flex-grow: 1; }
 .token-row .id-tag { font-size: 0.85em; color: var(--text-light); background-color: #f4f7f9; padding: 0.2rem 0.5rem; border-radius: 6px; }
