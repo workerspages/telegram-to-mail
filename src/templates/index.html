@@ -125,8 +125,6 @@ function toggleGroup(idx) {
     }
 }
 
-// ... (The rest of the script is largely the same, but with calls to saveConfigToServer integrated)
-
 // ---------- 全局函数 ----------
 function getAvailableNotifiers() {
     let options = [{ id: 'email', name: 'Email' }];
@@ -178,17 +176,17 @@ function renderNotifierModal(){
   renderTokenList('bark', 'barkTokenList');
   renderTokenList('pushplus', 'pushTokenList');
 }
-function addGlobalToken(type){
+async function addGlobalToken(type){
   if(!configData.notifiers[type]) configData.notifiers[type] = [];
   let nextId = type + (configData.notifiers[type].length + 1);
   configData.notifiers[type].push({id:nextId, token:''});
   renderNotifierModal();
 }
-function removeGlobalToken(type, idx){
+async function removeGlobalToken(type, idx){
   configData.notifiers[type].splice(idx,1);
   renderNotifierModal();
 }
-function updateGlobalToken(type, idx, value){
+async function updateGlobalToken(type, idx, value){
   configData.notifiers[type][idx].token = value;
 }
 
@@ -203,17 +201,19 @@ function renderGroups(expandedIndex = -1) {
       const isExpanded = idx === expandedIndex;
       html += `<div class="group-card ${isExpanded ? 'expanded' : ''}" id="group-card-${idx}">
         <div class="group-card-header" onclick="toggleGroup(${idx})">
+          <div class="toggle-container">
+            <div class="toggle-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
           <div class="group-title">
-            <b>${group.name || '未命名群组'}</b>
+            ${group.name || '未命名群组'}
             <span>[ID: ${group.id}]</span>
           </div>
           <div class="header-controls">
             <button class="btn-icon" onclick="deleteGroup(event, ${idx})" title="删除群组">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--danger-color);"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
-            <div class="toggle-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </div>
           </div>
         </div>
         <div class="group-card-body">
@@ -281,7 +281,7 @@ async function addKeywordToGroup(groupIdx){
   }
 }
 async function updateKeywordWord(groupIdx, kidx, val){ 
-    configData.groups[groupIdx].keywords[kidx].word = val; 
+    configData.groups[groupIdx].keywords[kidx].word = val.trim(); 
     await saveConfigToServer();
 }
 async function removeKeyword(groupIdx, kidx){ 
@@ -334,7 +334,7 @@ function createNewKeywordNotifyCheckboxes(kidx, vals){
 }
 function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[]}); renderKeywordRows(addGroupKeywords); }
 function removeKeywordRow(idx){ addGroupKeywords.splice(idx, 1); renderKeywordRows(addGroupKeywords); }
-function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val; }
+function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val.trim(); }
 function updateNewKeywordNotify(idx){
   const containerId = `modal-kw-${idx}`;
   addGroupKeywords[idx].notifiers = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
@@ -372,7 +372,6 @@ document.getElementById('notifierForm').onsubmit = async function(e){
   statusSpan.textContent = "正在保存...";
   statusSpan.style.color = 'var(--text-light)';
 
-  // Temporarily store old notifiers for potential rollback
   const oldNotifiers = JSON.parse(JSON.stringify(configData.notifiers));
   
   configData.notifiers.email = {
@@ -384,8 +383,10 @@ document.getElementById('notifierForm').onsubmit = async function(e){
   if (await saveConfigToServer()) {
       statusSpan.textContent = "保存成功！";
       statusSpan.style.color = 'var(--success-color)';
-      setTimeout(closeNotifierModal, 1000);
-      renderGroups(); // Re-render groups in case notifier IDs changed
+      setTimeout(() => {
+          closeNotifierModal();
+          renderGroups();
+      }, 1000);
   } else {
       statusSpan.textContent = "保存失败，配置已回滚。";
       statusSpan.style.color = 'var(--danger-color)';
