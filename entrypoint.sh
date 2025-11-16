@@ -15,15 +15,12 @@ mkdir -p "$PERSISTENT_DATA_DIR"
 mkdir -p "$PERSISTENT_SESSION_DIR"
 
 # --- 核心逻辑：配置文件初始化 ---
-# 如果持久化目录中没有配置文件，则从模板复制一份
 if [ ! -f "$PERSISTENT_CONFIG_FILE" ]; then
   echo "Config file not found in persistent storage. Initializing from default."
   cp "$DEFAULT_CONFIG_FILE" "$PERSISTENT_CONFIG_FILE"
 fi
 
 # --- 核心逻辑：建立符号链接 ---
-# 删除应用目录下的旧文件/链接，然后创建新的链接指向持久化位置
-# 这样 Python 代码无需任何改动
 rm -rf "$APP_CONFIG_FILE"
 ln -s "$PERSISTENT_CONFIG_FILE" "$APP_CONFIG_FILE"
 
@@ -40,6 +37,20 @@ tls_trust_file /etc/ssl/certs/ca-certificates.crt
 logfile        /dev/stdout
 EOF
 chmod 600 /etc/msmtprc
+
+
+# ★★★ 新增：可选的 Cloudflare Tunnel 功能 ★★★
+# 检查 TUNNEL_TOKEN 环境变量是否设置且不为空
+if [ -n "$TUNNEL_TOKEN" ]; then
+  echo "TUNNEL_TOKEN detected. Starting Cloudflare Tunnel..."
+  # 在后台启动 Cloudflare Tunnel，并将日志输出到标准输出
+  # --no-autoupdate 是在容器中运行的最佳实践
+  # Tunnel 会将流量指向 Flask 服务的 5000 端口
+  cloudflared tunnel --no-autoupdate --url http://localhost:5000 run --token "$TUNNEL_TOKEN" &
+else
+  echo "TUNNEL_TOKEN not set. Skipping Cloudflare Tunnel."
+fi
+
 
 # 执行 Docker CMD 中定义的命令
 exec "$@"
