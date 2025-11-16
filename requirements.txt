@@ -3,3 +3,4 @@ flask
 flask-login
 flask-wtf
 bcrypt
+aiohttp
