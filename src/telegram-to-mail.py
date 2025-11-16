@@ -1,51 +1,17 @@
 import asyncio
 import os
 import sys
+import json
 from io import BytesIO
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from telethon import TelegramClient, events
+import aiohttp
 
-# --- 1. 从环境变量中读取配置 ---
-
-def get_env_var(var_name, is_int=False, is_list=False):
-    """一个辅助函数，用于安全地从环境变量获取配置"""
-    value = os.getenv(var_name)
-    if value is None:
-        print(f"错误：环境变量 {var_name} 未设置。请在 docker-compose.yml 中定义它。")
-        sys.exit(1)
-    if is_int:
-        return int(value)
-    if is_list:
-        # 将逗号分隔的字符串转换为整数列表
-        return [int(x.strip()) for x in value.split(',')]
-    return value
-
-try:
-    # 从 my.telegram.org 获取的 API 凭证
-    API_ID = get_env_var('API_ID', is_int=True)
-    API_HASH = get_env_var('API_HASH')
-
-    # 一个唯一的会话文件名，用于保存登录状态
-    SESSION_NAME = get_env_var('SESSION_NAME')
-
-    # 您要监听的群组的 Chat ID (逗号分隔)
-    TARGET_CHAT_IDS = get_env_var('TARGET_CHAT_IDS', is_list=True)
-
-    # 您的目标邮箱地址
-    TO_EMAIL = get_env_var('TO_EMAIL')
-
-except (ValueError, TypeError) as e:
-    print(f"配置解析错误: {e}. 请检查 docker-compose.yml 中的环境变量格式。")
-    sys.exit(1)
-
-
-# --- 2. 邮件发送的核心逻辑 (与之前的脚本完全相同) ---
-
+# 发送邮件的函数 (保持和旧版完全兼容)
 async def send_email(subject, body_text, attachment=None, filename=None):
-    """一个独立的函数，负责将内容发送到邮箱"""
     mime_msg = MIMEMultipart()
     mime_msg['From'] = TO_EMAIL
     mime_msg['To'] = TO_EMAIL
@@ -60,7 +26,6 @@ async def send_email(subject, body_text, attachment=None, filename=None):
         mime_msg.attach(part)
 
     raw_bytes = mime_msg.as_bytes()
-    # 注意：这里我们使用 asyncio 的 subprocess 来避免阻塞
     proc = await asyncio.create_subprocess_exec(
         'msmtp', '-t',
         stdin=asyncio.subprocess.PIPE,
@@ -74,47 +39,98 @@ async def send_email(subject, body_text, attachment=None, filename=None):
     else:
         print(f"邮件转发失败: {stderr.decode()}")
 
+# Bark 推送函数
+async def send_bark(token, title, content):
+    url = f"https://api.day.app/{token}/{title}/{content}"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            return await resp.text()
 
-# --- 3. Telethon 客户端和事件处理 ---
+# Pushplus 推送函数
+async def send_pushplus(token, title, content):
+    url = "http://www.pushplus.plus/send"
+    payload = {
+        "token": token,
+        "title": title,
+        "content": content
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=payload) as resp:
+            return await resp.json()
 
-# 初始化客户端
-# 会话文件将保存在工作目录下
+# 从环境变量安全获取配置
+def get_env_var(var_name, is_int=False):
+    value = os.getenv(var_name)
+    if value is None:
+        print(f"错误：环境变量 {var_name} 未设置。")
+        sys.exit(1)
+    if is_int:
+        return int(value)
+    return value
+
+API_ID = get_env_var('API_ID', is_int=True)
+API_HASH = get_env_var('API_HASH')
+SESSION_NAME = get_env_var('SESSION_NAME')
+TO_EMAIL = get_env_var('TO_EMAIL')
+
+# Web 配置接口地址，即本机5000端口的接口
+WEB_CONFIG_URL = "http://127.0.0.1:5000/api/config"
+
+# 远程获取群组及推送配置
+async def fetch_config():
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(WEB_CONFIG_URL) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+                else:
+                    print(f"获取配置失败，HTTP状态码：{resp.status}")
+                    return {}
+        except Exception as e:
+            print(f"请求配置接口异常：{e}")
+            return {}
+
+# 监听客户端
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
 
-@client.on(events.NewMessage(chats=TARGET_CHAT_IDS))
+@client.on(events.NewMessage)
 async def message_handler(event):
-    """
-    当在指定群组中收到新消息时，此函数会被自动调用。
-    """
     msg = event.message
-    print(f"--- 收到新消息 (ID: {msg.id}) ---")
+    chat_id = event.chat_id or ''
 
-    # 1. 获取发送者信息
+    print(f"收到群组/频道消息，chat_id={chat_id}，消息ID={msg.id}")
+
+    config = await fetch_config()
+    groups_cfg = config.get('groups', {})
+
+    # 查找对应群组配置
+    group_cfg = groups_cfg.get(str(chat_id), None)
+    if not group_cfg:
+        print(f"群组 {chat_id} 未配置，跳过处理")
+        return
+    
+    # 读取推送设置和关键字
+    bark_tokens = group_cfg.get('bark_tokens', [])
+    pushplus_tokens = group_cfg.get('pushplus_tokens', [])
+    keywords_map = group_cfg.get('keywords', {})
+
+    # 构建消息内容
     sender_info = "未知来源"
     try:
         sender = await msg.get_sender()
         if sender:
-            sender_info = f"用户: {sender.first_name}"
-            if sender.last_name:
-                sender_info += f" {sender.last_name}"
-            if sender.username:
-                sender_info += f" (@{sender.username})"
+            sender_info = f"{sender.first_name or ''} {sender.last_name or ''} (@{sender.username or ''})"
         elif msg.chat:
-             sender_info = f"来自群组/频道: {msg.chat.title}"
-    except Exception as e:
-        print(f"获取发送者信息时出错: {e}")
+            sender_info = f"{msg.chat.title}"
+    except Exception:
+        pass
 
-    # 2. 构建邮件正文
-    body_text = (
-        f"From: {sender_info}\n\n"
-        + (msg.text or "[无文本内容]")
-    )
+    body_text = f"From: {sender_info}\n\n{msg.text or '[无文本内容]'}"
+    subject = "【Telegram】新消息"
 
-    # 3. 根据消息类型确定邮件标题和附件
-    subject = "【Telegram】新消息 (其他类型)"
+    # 判断消息类型及附件
     attachment_data = None
     attachment_filename = None
-
     if msg.photo:
         subject = "【Telegram】新图片信息"
         attachment_data = await msg.download_media(file=bytes)
@@ -130,13 +146,29 @@ async def message_handler(event):
     elif msg.text:
         subject = "【Telegram】新文字信息"
 
-    # 4. 调用邮件发送函数
+    # 先发邮件
     await send_email(subject, body_text, attachment_data, attachment_filename)
 
+    # 根据关键字匹配决定推送通道
+    push_tasks = []
+    for kw, app in keywords_map.items():
+        if kw in (msg.text or ''):
+            # 准备调用对应推送api
+            if app == 'bark':
+                for token in bark_tokens:
+                    push_tasks.append(send_bark(token, subject, body_text))
+            elif app == 'pushplus':
+                for token in pushplus_tokens:
+                    push_tasks.append(send_pushplus(token, subject, body_text))
+    
+    if push_tasks:
+        results = await asyncio.gather(*push_tasks, return_exceptions=True)
+        for r in results:
+            print(f"推送结果: {r}")
 
 async def main():
     print("Userbot 监听服务已启动...")
-    print(f"正在监听以下群组: {TARGET_CHAT_IDS}")
+    await client.start()
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
