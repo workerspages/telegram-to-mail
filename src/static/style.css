@@ -52,16 +52,35 @@ body {
 
 /* --- 卡片样式 --- */
 .group-card {
-  background: var(--card-bg); border-radius: var(--border-radius); margin-bottom: 1.5rem;
+  background: var(--card-bg); border-radius: var(--border-radius); margin-bottom: 1rem;
   box-shadow: var(--shadow); overflow: hidden; transition: all 0.2s ease-in-out;
 }
 .group-card-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 1rem 1.5rem; background-color: #fafbfc; border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);
+  cursor: pointer; user-select: none;
 }
+.group-card.expanded .group-card-header { border-bottom-color: var(--border-color); }
 .group-card-header .group-title b { font-size: 1.15rem; }
 .group-card-header .group-title span { color: var(--text-light); margin-left: 0.5rem; font-size: 0.9em; }
-.group-card-body { padding: 1.5rem; display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+
+/* --- 折叠动画核心样式 --- */
+.group-card-body {
+  padding: 0 1.5rem;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+}
+.group-card.expanded .group-card-body {
+  max-height: 2000px; /* 一个足够大的值以容纳内容 */
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.header-controls { display: flex; align-items: center; gap: 0.5rem; }
+.toggle-icon { transition: transform 0.3s ease-in-out; }
+.group-card.expanded .toggle-icon { transform: rotate(180deg); }
+
 
 /* --- 按钮 --- */
 .btn {
@@ -78,7 +97,7 @@ body {
 .btn-icon {
   background: none; border: none; color: var(--text-light);
   padding: 0.5rem; border-radius: 8px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center; z-index: 2;
 }
 .btn-icon:hover { background-color: #f4f7f9; color: var(--text-color); }
 .btn-icon svg { width: 18px; height: 18px; }
@@ -125,7 +144,7 @@ input[type="text"]:focus, input[type="password"]:focus {
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; background-color: #fbfcfd; border-top: 1px solid var(--border-color); }
 .modal-status { padding: 0 1.5rem 0.5rem; font-size: 0.9em; }
 
-/* --- Token 和 Keyword 的新布局样式 --- */
+/* --- Token 和 Keyword 的布局样式 --- */
 .token-row { display: flex; gap: 10px; align-items: center; margin-bottom: 0.75rem; }
 .token-row input { flex-grow: 1; }
 .token-row .id-tag { font-size: 0.85em; color: var(--text-light); background-color: #f4f7f9; padding: 0.2rem 0.5rem; border-radius: 6px; }
