@@ -8,21 +8,19 @@
       "msmtp_from": "your_sender_email@qq.com"
     },
     "bark": [
-      { "id": "bark1", "token": "bark_token1" },
-      { "id": "bark2", "token": "bark_token2" }
+      { "id": "bark1", "token": "BARK_TOKEN1" }
     ],
     "pushplus": [
-      { "id": "pp1", "token": "pushplus_token1" }
+      { "id": "pp1", "token": "PUSHP_TOKEN1" }
     ]
   },
   "groups": [
     {
       "id": "-10000",
       "name": "公司技术群",
-      "default_notifiers": ["bark1", "pp1"],
+      "default_notifiers": ["bark1", "pp1", "email"],
       "keywords": [
-        { "word": "报警", "notifiers": ["bark1", "pp1"] },
-        { "word": "推广", "notifiers": ["pp1"] }
+        { "word": "报警", "notifiers": ["bark1", "email"] }
       ]
     }
   ]
