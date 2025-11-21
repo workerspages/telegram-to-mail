@@ -11,7 +11,7 @@
 
 项目内置了一个现代化、响应式的 Web UI 管理面板，让所有配置操作都变得简单直观。
 
-![Web UI 界面截图](https://user-images.githubusercontent.com/your-image-url.png) <!-- 建议您将最终的界面截图上传到 issue 中，然后替换这里的链接 -->
+![Web UI 界面截图](/pic/web.png) <!-- 建议您将最终的界面截图上传到 issue 中，然后替换这里的链接 -->
 
 ---
 
