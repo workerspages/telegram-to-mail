@@ -147,6 +147,28 @@ async def process_notifications(config, notifiers_list, subject, body):
 
 async def handle_message(event):
     """处理新消息事件"""
+    # ★★★ 新增的调试代码：打印接收到的所有事件的详细信息 ★★★
+    try:
+        sender = await event.get_sender()
+        is_bot = sender.bot if sender else False
+        sender_name = "N/A"
+        if sender:
+            sender_name = f"{sender.first_name or ''} {sender.last_name or ''}".strip()
+        
+        print("-" * 40)
+        print(f"EVENT RECEIVED AT: {event.message.date}")
+        print(f"  -> Chat ID: {event.chat_id}")
+        print(f"  -> Sender: '{sender_name}' (Is Bot: {is_bot})")
+        # 使用 repr() 来显示隐藏字符，例如换行符 \n
+        print(f"  -> Message Text: {repr(event.message.text)}")
+        # 打印完整的消息对象结构，这是最重要的调试信息
+        print(f"  -> Full Message Object: {event.message.stringify()}")
+        print("-" * 40)
+    except Exception as e:
+        # 即使在打印日志时出错，也确保主程序不会崩溃
+        print(f"[DEBUG-ERROR] An error occurred while trying to log the event: {e}")
+    # ★★★ 调试代码结束 ★★★
+
     config = load_config()
     if not config:
         return
