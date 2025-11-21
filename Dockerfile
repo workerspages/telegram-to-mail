@@ -1,10 +1,15 @@
 FROM python:3.10-slim
 WORKDIR /app
 
-# ★★★ 修改点：在安装依赖时，额外添加 wget 用于下载 ★★★
-RUN apt-get update && apt-get install -y msmtp ca-certificates wget && rm -rf /var/lib/apt/lists/*
+# 添加 tzdata 并设置时区
+RUN apt-get update && \
+    export DEBIAN_FRONTEND=noninteractive && \
+    apt-get install -y msmtp ca-certificates wget tzdata && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    rm -rf /var/lib/apt/lists/*
 
-# ★★★ 新增：下载并安装 Cloudflare Tunnel 客户端 (cloudflared) ★★★
+# 新增：下载并安装 Cloudflare Tunnel 客户端 (cloudflared)
 RUN wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && \
     dpkg -i cloudflared-linux-amd64.deb && \
     rm cloudflared-linux-amd64.deb
