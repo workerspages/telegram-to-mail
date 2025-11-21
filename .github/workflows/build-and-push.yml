@@ -5,7 +5,7 @@ name: Build and Push Docker Image
 on:
   # 当有代码推送到 main 分支时触发
   push:
-    branches: [ "web" ]
+    branches: [ "web-20251121" ]
   # 允许你从 Actions 标签页手动触发此工作流
   workflow_dispatch:
 
