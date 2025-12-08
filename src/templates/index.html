@@ -328,8 +328,8 @@ function createNotifierCheckboxes(containerId, selectedValues = [], onchangeCall
     return `<div class="switch-grid">${html}</div>`;
 }
 
+// ★★★ 核心修改：关键字行增加延迟时间输入 ★★★
 function createKeywordRow(groupIdx, kidx, kwObj){
-  // ★★★ 新增：回复功能输入框 ★★★
   return `<div class="list-card">
     <div style="display:flex; gap:0.5rem; margin-bottom:0.8rem;">
       <input type="text" value="${kwObj.word||''}" placeholder="输入匹配关键字..." onchange="updateKeywordWord(${groupIdx}, ${kidx}, this.value)">
@@ -340,9 +340,15 @@ function createKeywordRow(groupIdx, kidx, kwObj){
        ${createNotifierCheckboxes(`group-${groupIdx}-kw-${kidx}`, kwObj.notifiers || [], `updateKeywordNotifier(${groupIdx}, ${kidx})`)}
     </div>
 
-    <div>
-        <label style="font-size:0.8rem; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">自动回复 (5秒后发送)</label>
-        <input type="text" value="${kwObj.reply_content||''}" placeholder="留空则不回复" onchange="updateKeywordReply(${groupIdx}, ${kidx}, this.value)" style="font-size:0.9rem;">
+    <div style="display: flex; gap: 0.8rem; align-items: flex-end;">
+        <div style="flex-grow: 1;">
+            <label style="font-size:0.8rem; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">自动回复内容</label>
+            <input type="text" value="${kwObj.reply_content||''}" placeholder="留空则不回复" onchange="updateKeywordReply(${groupIdx}, ${kidx}, this.value)" style="font-size:0.9rem;">
+        </div>
+        <div style="width: 80px;">
+            <label style="font-size:0.8rem; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">延迟(秒)</label>
+            <input type="number" min="0" value="${kwObj.reply_delay||5}" onchange="updateKeywordDelay(${groupIdx}, ${kidx}, this.value)" style="font-size:0.9rem; text-align:center;">
+        </div>
     </div>
   </div>`;
 }
@@ -350,10 +356,11 @@ function createKeywordRow(groupIdx, kidx, kwObj){
 async function updateGroupNotifier(gId) { configData.groups[gId].default_notifiers = Array.from(document.querySelectorAll(`#group-${gId}-default input:checked`)).map(el => el.value); await saveConfigToServer(); }
 async function updateKeywordNotifier(gId, kId) { configData.groups[gId].keywords[kId].notifiers = Array.from(document.querySelectorAll(`#group-${gId}-kw-${kId} input:checked`)).map(el => el.value); await saveConfigToServer(); }
 async function updateKeywordWord(gId, kId, val){ configData.groups[gId].keywords[kId].word = val.trim(); await saveConfigToServer(); }
-// ★★★ 新增：更新回复内容 ★★★
 async function updateKeywordReply(gId, kId, val){ configData.groups[gId].keywords[kId].reply_content = val; await saveConfigToServer(); }
+// ★★★ 新增：更新延迟时间 ★★★
+async function updateKeywordDelay(gId, kId, val){ configData.groups[gId].keywords[kId].reply_delay = val; await saveConfigToServer(); }
 
-async function addKeywordToGroup(gId){ if(!configData.groups[gId].keywords) configData.groups[gId].keywords=[]; configData.groups[gId].keywords.push({word:'', notifiers:[], reply_content:''}); if(await saveConfigToServer()) renderGroups(gId); }
+async function addKeywordToGroup(gId){ if(!configData.groups[gId].keywords) configData.groups[gId].keywords=[]; configData.groups[gId].keywords.push({word:'', notifiers:[], reply_content:'', reply_delay: 5}); if(await saveConfigToServer()) renderGroups(gId); }
 async function removeKeyword(gId, kId){ configData.groups[gId].keywords.splice(kId,1); if(await saveConfigToServer()) renderGroups(gId); }
 async function deleteGroup(e, idx) { e.stopPropagation(); if(confirm('删除此群组？')) { configData.groups.splice(idx, 1); if(await saveConfigToServer()) renderGroups(); } }
 
@@ -385,17 +392,24 @@ function renderKeywordRows(kws){
           </div>
       </div>
       
-      <div>
-         <label style="font-size:0.75rem; color:var(--text-secondary);">自动回复</label>
-         <input type="text" value="${kw.reply_content||''}" onchange="updateNewKeywordReply(${idx}, this.value)" placeholder="回复内容..." style="font-size:0.85rem; height:36px;">
+      <div style="display: flex; gap: 0.8rem; align-items: flex-end;">
+         <div style="flex-grow: 1;">
+            <label style="font-size:0.75rem; color:var(--text-secondary);">自动回复</label>
+            <input type="text" value="${kw.reply_content||''}" onchange="updateNewKeywordReply(${idx}, this.value)" placeholder="回复内容..." style="font-size:0.85rem; height:36px;">
+         </div>
+         <div style="width: 80px;">
+            <label style="font-size:0.75rem; color:var(--text-secondary);">延迟(秒)</label>
+            <input type="number" min="0" value="${kw.reply_delay||5}" onchange="updateNewKeywordDelay(${idx}, this.value)" style="font-size:0.85rem; height:36px; text-align:center;">
+         </div>
       </div>
     </div>`).join('');
 }
-function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[], reply_content:''}); renderKeywordRows(addGroupKeywords); }
+function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[], reply_content:'', reply_delay: 5}); renderKeywordRows(addGroupKeywords); }
 function removeKeywordRow(idx){ addGroupKeywords.splice(idx, 1); renderKeywordRows(addGroupKeywords); }
 function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val.trim(); }
-// ★★★ 新增：弹窗中更新回复内容 ★★★
 function updateNewKeywordReply(idx, val){ addGroupKeywords[idx].reply_content = val; }
+// ★★★ 新增：弹窗中更新延迟时间 ★★★
+function updateNewKeywordDelay(idx, val){ addGroupKeywords[idx].reply_delay = val; }
 
 /* --- 提交 --- */
 document.getElementById('addGroupForm').onsubmit = async function(e){
