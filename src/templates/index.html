@@ -329,19 +329,31 @@ function createNotifierCheckboxes(containerId, selectedValues = [], onchangeCall
 }
 
 function createKeywordRow(groupIdx, kidx, kwObj){
+  // ★★★ 新增：回复功能输入框 ★★★
   return `<div class="list-card">
     <div style="display:flex; gap:0.5rem; margin-bottom:0.8rem;">
-      <input type="text" value="${kwObj.word||''}" placeholder="输入关键字..." onchange="updateKeywordWord(${groupIdx}, ${kidx}, this.value)">
+      <input type="text" value="${kwObj.word||''}" placeholder="输入匹配关键字..." onchange="updateKeywordWord(${groupIdx}, ${kidx}, this.value)">
       <button type="button" class="btn-icon btn-icon-danger" onclick="removeKeyword(${groupIdx}, ${kidx})" style="border:1px solid var(--border); border-radius:10px; width:42px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
     </div>
-    ${createNotifierCheckboxes(`group-${groupIdx}-kw-${kidx}`, kwObj.notifiers || [], `updateKeywordNotifier(${groupIdx}, ${kidx})`)}
+    
+    <div style="margin-bottom:0.8rem; padding-bottom:0.8rem; border-bottom:1px solid #f3f4f6;">
+       ${createNotifierCheckboxes(`group-${groupIdx}-kw-${kidx}`, kwObj.notifiers || [], `updateKeywordNotifier(${groupIdx}, ${kidx})`)}
+    </div>
+
+    <div>
+        <label style="font-size:0.8rem; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">自动回复 (5秒后发送)</label>
+        <input type="text" value="${kwObj.reply_content||''}" placeholder="留空则不回复" onchange="updateKeywordReply(${groupIdx}, ${kidx}, this.value)" style="font-size:0.9rem;">
+    </div>
   </div>`;
 }
 
 async function updateGroupNotifier(gId) { configData.groups[gId].default_notifiers = Array.from(document.querySelectorAll(`#group-${gId}-default input:checked`)).map(el => el.value); await saveConfigToServer(); }
 async function updateKeywordNotifier(gId, kId) { configData.groups[gId].keywords[kId].notifiers = Array.from(document.querySelectorAll(`#group-${gId}-kw-${kId} input:checked`)).map(el => el.value); await saveConfigToServer(); }
 async function updateKeywordWord(gId, kId, val){ configData.groups[gId].keywords[kId].word = val.trim(); await saveConfigToServer(); }
-async function addKeywordToGroup(gId){ if(!configData.groups[gId].keywords) configData.groups[gId].keywords=[]; configData.groups[gId].keywords.push({word:'', notifiers:[]}); if(await saveConfigToServer()) renderGroups(gId); }
+// ★★★ 新增：更新回复内容 ★★★
+async function updateKeywordReply(gId, kId, val){ configData.groups[gId].keywords[kId].reply_content = val; await saveConfigToServer(); }
+
+async function addKeywordToGroup(gId){ if(!configData.groups[gId].keywords) configData.groups[gId].keywords=[]; configData.groups[gId].keywords.push({word:'', notifiers:[], reply_content:''}); if(await saveConfigToServer()) renderGroups(gId); }
 async function removeKeyword(gId, kId){ configData.groups[gId].keywords.splice(kId,1); if(await saveConfigToServer()) renderGroups(gId); }
 async function deleteGroup(e, idx) { e.stopPropagation(); if(confirm('删除此群组？')) { configData.groups.splice(idx, 1); if(await saveConfigToServer()) renderGroups(); } }
 
@@ -363,17 +375,27 @@ function renderKeywordRows(kws){
         <input type="text" value="${kw.word||''}" onchange="updateNewKeywordWord(${idx}, this.value)" placeholder="关键字">
         <button type="button" class="btn-icon btn-icon-danger" onclick="removeKeywordRow(${idx})" style="border:1px solid var(--border); border-radius:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
-      <div class="switch-grid" id="modal-kw-${idx}">${getAvailableNotifiers().map(opt => 
-          `<label class="switch-label ${kw.notifiers.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
-            <input type="checkbox" value="${opt.id}" ${kw.notifiers.includes(opt.id)?'checked':''}>
-            <div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span>
-           </label>`).join('')}
+      
+      <div style="margin-bottom:0.8rem;">
+          <div class="switch-grid" id="modal-kw-${idx}">${getAvailableNotifiers().map(opt => 
+              `<label class="switch-label ${kw.notifiers.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
+                <input type="checkbox" value="${opt.id}" ${kw.notifiers.includes(opt.id)?'checked':''}>
+                <div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span>
+               </label>`).join('')}
+          </div>
+      </div>
+      
+      <div>
+         <label style="font-size:0.75rem; color:var(--text-secondary);">自动回复</label>
+         <input type="text" value="${kw.reply_content||''}" onchange="updateNewKeywordReply(${idx}, this.value)" placeholder="回复内容..." style="font-size:0.85rem; height:36px;">
       </div>
     </div>`).join('');
 }
-function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[]}); renderKeywordRows(addGroupKeywords); }
+function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[], reply_content:''}); renderKeywordRows(addGroupKeywords); }
 function removeKeywordRow(idx){ addGroupKeywords.splice(idx, 1); renderKeywordRows(addGroupKeywords); }
 function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val.trim(); }
+// ★★★ 新增：弹窗中更新回复内容 ★★★
+function updateNewKeywordReply(idx, val){ addGroupKeywords[idx].reply_content = val; }
 
 /* --- 提交 --- */
 document.getElementById('addGroupForm').onsubmit = async function(e){
