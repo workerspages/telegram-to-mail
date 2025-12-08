@@ -538,4 +538,32 @@ document.getElementById('notifierForm').onsubmit = async function(e){
 
   const oldNotifiers = JSON.parse(JSON.stringify(configData.notifiers));
   
-  configData.notifiers
+  configData.notifiers.email = {
+    msmtp_host: document.getElementById('msmtp_host').value,
+    msmtp_port: document.getElementById('msmtp_port').value,
+    msmtp_user: document.getElementById('msmtp_user').value,
+    msmtp_pass: document.getElementById('msmtp_pass').value,
+    msmtp_from: document.getElementById('msmtp_from').value
+  };
+
+  if (await saveConfigToServer()) {
+      statusSpan.textContent = "保存成功！";
+      statusSpan.style.color = 'var(--success)';
+      setTimeout(() => {
+          closeNotifierModal();
+          renderGroups();
+      }, 1000);
+  } else {
+      statusSpan.textContent = "保存失败，配置已回滚。";
+      statusSpan.style.color = 'var(--danger)';
+      configData.notifiers = oldNotifiers; 
+  }
+};
+
+function logout(){ location.href="/logout"; }
+
+// ---------- 初始渲染 ----------
+renderGroups();
+</script>
+</body>
+</html>
