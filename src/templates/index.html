@@ -14,17 +14,18 @@
     <h2>Telegram 配置中心</h2>
     <div class="header-actions">
       <button class="btn btn-primary" onclick="openAddGroupModal()" title="添加群组">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        <span style="margin-left:4px">添加群组</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span style="margin-left:6px">群组</span>
       </button>
       <button class="btn btn-secondary" onclick="openScheduleModal()" title="定时任务">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span style="margin-left:6px">任务</span>
       </button>
-      <button class="btn-icon" onclick="openNotifierModal()" title="推送通道设置">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      <button class="btn-icon" onclick="openNotifierModal()" title="设置">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
       </button>
-       <button class="btn-icon" onclick="logout()" title="退出登录">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+       <button class="btn-icon btn-icon-danger" onclick="logout()" title="退出">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
       </button>
     </div>
   </header>
@@ -38,37 +39,39 @@
       <h2>推送通道设置</h2>
       <button class="close" onclick="closeNotifierModal()">&times;</button>
     </div>
-    <form id="notifierForm">
+    <form id="notifierForm" style="display:flex; flex-direction:column; height:100%;">
       <div class="modal-body">
-        <div class="notifier-section">
-          <h4>Email (SMTP)</h4>
-          <div class="form-group"><label>SMTP Host</label><input id="msmtp_host" type="text"></div>
-          <div class="form-group"><label>Port</label><input id="msmtp_port" type="text"></div>
-          <div class="form-group"><label>Username</label><input id="msmtp_user" type="text"></div>
-          <div class="form-group"><label>Password</label><input id="msmtp_pass" type="password"></div>
-          <div class="form-group"><label>From Address</label><input id="msmtp_from" type="text"></div>
+        <div style="margin-bottom: 2rem;">
+          <h4 style="margin:0 0 1rem; font-size:0.9rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Email (SMTP)</h4>
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1rem;">
+              <div class="form-group"><label>Host</label><input id="msmtp_host" type="text" placeholder="smtp.example.com"></div>
+              <div class="form-group"><label>Port</label><input id="msmtp_port" type="text" placeholder="587"></div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+              <div class="form-group"><label>Username</label><input id="msmtp_user" type="text"></div>
+              <div class="form-group"><label>Password</label><input id="msmtp_pass" type="password"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;"><label>From Address</label><input id="msmtp_from" type="text"></div>
         </div>
-        
-        <div class="notifier-section" style="margin-top:1.5rem;">
+
+        <div style="margin-bottom: 2rem;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-             <h4 style="margin:0; border:none;">Bark Devices</h4>
-             <button type="button" class="btn btn-secondary btn-small" onclick="addGlobalToken('bark')" style="font-size:0.8rem; height:32px;">+ 添加</button>
+             <h4 style="margin:0; font-size:0.9rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Bark Devices</h4>
+             <button type="button" class="btn btn-secondary" onclick="addGlobalToken('bark')" style="height:28px; font-size:0.8rem; padding:0 0.8rem;">+ 添加</button>
           </div>
           <div id="barkTokenList"></div>
         </div>
-        
-        <div class="notifier-section" style="margin-top:1.5rem;">
+
+        <div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-             <h4 style="margin:0; border:none;">Pushplus Tokens</h4>
-             <button type="button" class="btn btn-secondary btn-small" onclick="addGlobalToken('pushplus')" style="font-size:0.8rem; height:32px;">+ 添加</button>
+             <h4 style="margin:0; font-size:0.9rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Pushplus Tokens</h4>
+             <button type="button" class="btn btn-secondary" onclick="addGlobalToken('pushplus')" style="height:28px; font-size:0.8rem; padding:0 0.8rem;">+ 添加</button>
           </div>
           <div id="pushTokenList"></div>
         </div>
       </div>
-      <div class="modal-status">
-        <span id="notifierStatus"></span>
-      </div>
       <div class="modal-actions">
+        <span id="notifierStatus" style="margin-right:auto; font-size:0.9rem; align-self:center;"></span>
         <button type="button" class="btn btn-secondary" onclick="closeNotifierModal()">取消</button>
         <button type="submit" class="btn btn-primary">保存设置</button>
       </div>
@@ -82,26 +85,26 @@
       <h2>添加新群组</h2>
       <button class="close" onclick="closeAddGroupModal()">&times;</button>
     </div>
-    <form id="addGroupForm">
+    <form id="addGroupForm" style="display:flex; flex-direction:column; height:100%;">
       <div class="modal-body">
-        <div class="form-group"><label for="modalGroupId">群组 ID</label><input type="text" id="modalGroupId" required placeholder="-100xxxxxxxxx"></div>
-        <div class="form-group"><label for="modalGroupName">群组名称 (备注)</label><input type="text" id="modalGroupName" placeholder="例如: 技术交流群"></div>
-        <div class="form-group">
-          <label>默认推送通道</label>
+        <div class="form-group"><label>群组 ID</label><input type="text" id="modalGroupId" required placeholder="-100xxxxxxxxx"></div>
+        <div class="form-group"><label>群组名称 (备注)</label><input type="text" id="modalGroupName" placeholder="例如: 技术交流群"></div>
+        
+        <div class="form-group" style="margin-top:1.5rem;">
+          <label style="margin-bottom:0.8rem;">默认推送通道</label>
           <div id="modalDefaultNotifyContainer" class="switch-grid"></div>
         </div>
+
         <div class="form-group" style="margin-top:2rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-            <label style="margin:0">关键字规则</label>
-            <button type="button" class="btn btn-secondary" onclick="addKeywordRow()" style="height:30px; font-size:0.8rem;">+ 添加规则</button>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+            <label style="margin:0;">关键字规则 (可选)</label>
+            <button type="button" class="btn btn-secondary" onclick="addKeywordRow()" style="height:28px; font-size:0.8rem;">+ 规则</button>
           </div>
           <div id="addGroupKeywords"></div>
         </div>
       </div>
-       <div class="modal-status" style="padding:0 1.5rem;">
-        <span class="error-msg" id="addGroupError" style="color:var(--danger)"></span>
-      </div>
       <div class="modal-actions">
+        <span class="error-msg" id="addGroupError" style="margin-right:auto; color:var(--danger); font-size:0.9rem; align-self:center;"></span>
         <button type="button" class="btn btn-secondary" onclick="closeAddGroupModal()">取消</button>
         <button type="submit" class="btn btn-primary">保存群组</button>
       </div>
@@ -117,13 +120,13 @@
     </div>
     <div class="modal-body" style="background: #f9fafb;">
       <div class="form-group" style="text-align:center; margin-bottom:1.5rem;">
-         <p style="color:var(--text-secondary); font-size:0.9rem;">任务将在设定的时间段内随机触发，以模拟真人操作。</p>
+         <p style="color:var(--text-secondary); font-size:0.85rem; margin:0;">任务将在“开始”与“结束”时间之间随机触发，模拟真人操作。</p>
       </div>
       <div id="scheduleTaskList"></div>
-      <button type="button" class="btn btn-primary" onclick="addScheduleTask()" style="width: 100%;">+ 添加新任务</button>
+      <button type="button" class="btn btn-secondary" onclick="addScheduleTask()" style="width: 100%; border-style:dashed;">+ 添加新任务</button>
     </div>
-    <div class="modal-status" style="padding: 0.5rem 1.5rem;"><span id="scheduleStatus"></span></div>
     <div class="modal-actions">
+      <span id="scheduleStatus" style="margin-right:auto; font-size:0.9rem; align-self:center;"></span>
       <button type="button" class="btn btn-secondary" onclick="closeScheduleModal()">关闭</button>
     </div>
   </div>
@@ -132,10 +135,9 @@
 <script>
 let configData = {{ config|tojson|safe }};
 if (!configData.scheduled_tasks) configData.scheduled_tasks = [];
-
 const pushTypes = { bark: "Bark", pushplus: "Pushplus", email: "Email" };
 
-// ---------- 核心：保存配置到服务器 ----------
+/* --- API --- */
 async function saveConfigToServer() {
     try {
         const response = await fetch('/api/config', {
@@ -144,33 +146,22 @@ async function saveConfigToServer() {
             body: JSON.stringify(configData)
         });
         return response.ok;
-    } catch (error) {
-        console.error("Failed to save config:", error);
-        return false;
-    }
+    } catch (error) { console.error(error); return false; }
 }
 
-// ---------- 展开/折叠功能 ----------
+/* --- UI Logic --- */
 function toggleGroup(idx) {
-    const card = document.getElementById(`group-card-${idx}`);
-    if (card) {
-        card.classList.toggle('expanded');
-    }
+    document.getElementById(`group-card-${idx}`)?.classList.toggle('expanded');
 }
 
-// ---------- 全局函数 ----------
 function getAvailableNotifiers() {
     let options = [{ id: 'email', name: 'Email' }];
-    if (configData.notifiers.bark) {
-        configData.notifiers.bark.forEach(n => options.push({ id: n.id, name: `${pushTypes.bark} ${n.id}` }));
-    }
-    if (configData.notifiers.pushplus) {
-        configData.notifiers.pushplus.forEach(n => options.push({ id: n.id, name: `${pushTypes.pushplus} ${n.id}` }));
-    }
+    if (configData.notifiers.bark) configData.notifiers.bark.forEach(n => options.push({ id: n.id, name: `${pushTypes.bark} ${n.id}` }));
+    if (configData.notifiers.pushplus) configData.notifiers.pushplus.forEach(n => options.push({ id: n.id, name: `${pushTypes.pushplus} ${n.id}` }));
     return options;
 }
 
-// ---------- 弹窗管理 ----------
+/* --- Modals --- */
 function openNotifierModal(){
     document.getElementById('notifierStatus').textContent = '';
     renderNotifierModal(); 
@@ -195,46 +186,43 @@ function openScheduleModal(){
 function closeScheduleModal(){ document.getElementById('scheduleModalMask').classList.remove('active'); }
 
 
-// ---------- ★★★ 重点修改：现代化的定时任务列表渲染 ★★★ ----------
+/* --- ★★★ 渲染逻辑：定时任务列表 ★★★ --- */
 function renderScheduleList() {
     const container = document.getElementById('scheduleTaskList');
     if (configData.scheduled_tasks.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:#999; padding: 2rem;">暂无定时任务</div>';
+        container.innerHTML = '<div style="text-align:center; color:#9ca3af; padding: 2rem;">暂无定时任务</div>';
         return;
     }
-    
     container.innerHTML = configData.scheduled_tasks.map((task, idx) => `
-        <div class="schedule-item">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div class="list-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem;">
                 <div style="flex: 1; margin-right: 1rem;">
-                    <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem; display:block;">发送目标</label>
+                    <label style="font-size: 0.8rem; color:var(--text-secondary); margin-bottom: 0.2rem;">发送目标</label>
                     <input type="text" value="${task.target || ''}" placeholder="@bot_name" onchange="updateScheduleTask(${idx}, 'target', this.value)" style="font-weight:500;">
                 </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                     <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">任务状态</label>
-                     <label class="switch-label ${task.enabled !== false ? 'checked' : ''}" style="margin:0; padding: 4px 8px; border:none; background:transparent;">
+                <div>
+                     <label style="font-size: 0.8rem; color:var(--text-secondary); margin-bottom: 0.2rem; text-align:right; display:block;">状态</label>
+                     <label class="switch-label ${task.enabled !== false ? 'checked' : ''}" style="margin:0; padding: 4px 6px; border:none; background:transparent;">
                         <input type="checkbox" ${task.enabled !== false ? 'checked' : ''} onchange="updateScheduleTask(${idx}, 'enabled', this.checked); renderScheduleList();"> 
                         <div class="slider-track"><div class="slider-thumb"></div></div>
                      </label>
                 </div>
             </div>
-
-            <div style="margin-bottom: 1rem;">
-                 <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem; display:block;">随机发送时间段</label>
+            <div style="margin-bottom: 0.8rem;">
+                 <label style="font-size: 0.8rem; color:var(--text-secondary); margin-bottom: 0.2rem;">随机触发时段</label>
                  <div class="time-range-group">
-                    <input type="time" value="${task.time_start || task.time || '08:00'}" onchange="updateScheduleTask(${idx}, 'time_start', this.value)">
-                    <span class="time-range-separator">→</span>
-                    <input type="time" value="${task.time_end || task.time || '09:00'}" onchange="updateScheduleTask(${idx}, 'time_end', this.value)">
+                    <input type="time" value="${task.time_start || task.time || '08:00'}" onchange="updateScheduleTask(${idx}, 'time_start', this.value)" style="flex:1;">
+                    <span class="time-separator">→</span>
+                    <input type="time" value="${task.time_end || task.time || '09:00'}" onchange="updateScheduleTask(${idx}, 'time_end', this.value)" style="flex:1;">
                  </div>
             </div>
-
-            <div style="display: flex; gap: 10px; align-items: flex-end;">
+            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
                 <div style="flex-grow: 1;">
-                     <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem; display:block;">发送内容</label>
+                     <label style="font-size: 0.8rem; color:var(--text-secondary); margin-bottom: 0.2rem;">内容</label>
                      <input type="text" value="${task.message || ''}" placeholder="/checkin" onchange="updateScheduleTask(${idx}, 'message', this.value)">
                 </div>
-                <button type="button" class="btn btn-icon btn-danger-icon" onclick="removeScheduleTask(${idx})" title="删除任务" style="border: 1px solid var(--border); border-radius: 10px; height: 44px; width: 44px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <button type="button" class="btn-icon btn-icon-danger" onclick="removeScheduleTask(${idx})" title="删除" style="border: 1px solid var(--border); border-radius: 10px; height: 42px; width: 42px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
             </div>
         </div>
@@ -242,43 +230,20 @@ function renderScheduleList() {
 }
 
 async function addScheduleTask() {
-    configData.scheduled_tasks.push({
-        target: '@sheeridverifier_bot',
-        message: '/checkin',
-        time_start: '09:00',
-        time_end: '10:00',
-        enabled: true
-    });
-    if (await saveConfigToServer()) {
-        renderScheduleList();
-    }
+    configData.scheduled_tasks.push({ target: '@sheeridverifier_bot', message: '/checkin', time_start: '09:00', time_end: '10:00', enabled: true });
+    if (await saveConfigToServer()) renderScheduleList();
 }
-
 async function removeScheduleTask(idx) {
-    if(confirm("确定要删除此任务吗？")) {
-        configData.scheduled_tasks.splice(idx, 1);
-        if (await saveConfigToServer()) {
-            renderScheduleList();
-        }
-    }
+    if(confirm("确定删除？")) { configData.scheduled_tasks.splice(idx, 1); if (await saveConfigToServer()) renderScheduleList(); }
 }
-
 async function updateScheduleTask(idx, key, value) {
     configData.scheduled_tasks[idx][key] = value;
-    const status = document.getElementById('scheduleStatus');
-    status.textContent = "保存中...";
-    status.style.color = "#9ca3af";
-    if (await saveConfigToServer()) {
-        status.textContent = "已保存";
-        status.style.color = "var(--success)";
-        setTimeout(() => { status.textContent = ""; }, 1000);
-    } else {
-        status.textContent = "保存失败";
-        status.style.color = "var(--danger)";
-    }
+    const s = document.getElementById('scheduleStatus'); s.textContent = "保存中..."; s.style.color = "#9ca3af";
+    if (await saveConfigToServer()) { s.textContent = "已保存"; s.style.color = "var(--success)"; setTimeout(() => s.textContent="", 1000); } 
+    else { s.textContent = "失败"; s.style.color = "var(--danger)"; }
 }
 
-// ---------- 推送通道弹窗渲染 (简化) ----------
+/* --- ★★★ 渲染逻辑：推送通道设置 ★★★ --- */
 function renderNotifierModal(){
   let n = configData.notifiers;
   document.getElementById('msmtp_host').value = n.email.msmtp_host||'';
@@ -287,80 +252,49 @@ function renderNotifierModal(){
   document.getElementById('msmtp_pass').value = n.email.msmtp_pass||'';
   document.getElementById('msmtp_from').value = n.email.msmtp_from||'';
 
-  // Bark
-  const barkTokenContainer = document.getElementById('barkTokenList');
-  barkTokenContainer.innerHTML = (n.bark || []).map((t, idx) => `
-    <div class="keyword-block">
-        <div class="form-group" style="margin-bottom:0.5rem">
-            <input type="text" value="${t.server_url || ''}" placeholder="服务器地址 (可选)" onchange="updateGlobalToken('bark', ${idx}, 'server_url', this.value)">
+  const renderTokenRow = (t, idx, type) => `
+    <div class="list-card" style="padding:0.8rem; margin-bottom:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+        <div style="flex:1; display:flex; flex-direction:column; gap:0.5rem;">
+            ${type === 'bark' ? `<input type="text" value="${t.server_url || ''}" placeholder="Server URL (可选)" onchange="updateGlobalToken('${type}', ${idx}, 'server_url', this.value)" style="font-size:0.85rem; height:36px;">` : ''}
+            <input type="text" value="${t.token}" placeholder="Token / Key" onchange="updateGlobalToken('${type}', ${idx}, 'token', this.value)" style="height:36px;">
         </div>
-        <div class="token-row">
-            <input type="text" value="${t.token}" placeholder="Bark Key" onchange="updateGlobalToken('bark', ${idx}, 'token', this.value)">
-            <span class="id-tag">${t.id}</span>
-            <button type="button" class="btn-icon btn-danger-icon" onclick="removeGlobalToken('bark', ${idx})">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:0.2rem;">
+             <span class="id-badge">${t.id}</span>
+             <button type="button" class="btn-icon btn-icon-danger" onclick="removeGlobalToken('${type}', ${idx})"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
-    </div>`).join('');
+    </div>`;
 
-  // Pushplus
-  const pushplusTokenContainer = document.getElementById('pushTokenList');
-  pushplusTokenContainer.innerHTML = (n.pushplus || []).map((t, idx) => `
-    <div class="token-row" style="margin-bottom:0.5rem">
-      <input type="text" value="${t.token}" placeholder="Pushplus Token" onchange="updateGlobalToken('pushplus', ${idx}, 'token', this.value)">
-      <span class="id-tag">${t.id}</span>
-      <button type="button" class="btn-icon btn-danger-icon" onclick="removeGlobalToken('pushplus', ${idx})">
-         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-    </div>`).join('');
+  document.getElementById('barkTokenList').innerHTML = (n.bark || []).map((t, i) => renderTokenRow(t, i, 'bark')).join('');
+  document.getElementById('pushTokenList').innerHTML = (n.pushplus || []).map((t, i) => renderTokenRow(t, i, 'pushplus')).join('');
 }
 
 function addGlobalToken(type){
-  if (type === 'bark') {
-    if (!configData.notifiers.bark) configData.notifiers.bark = [];
-    let nextId = `bark${configData.notifiers.bark.length + 1}`;
-    configData.notifiers.bark.push({id: nextId, token: '', server_url: ''});
-  } else { 
-    if (!configData.notifiers.pushplus) configData.notifiers.pushplus = [];
-    let nextId = `pushplus${configData.notifiers.pushplus.length + 1}`;
-    configData.notifiers.pushplus.push({id: nextId, token: ''});
-  }
+  if (!configData.notifiers[type]) configData.notifiers[type] = [];
+  configData.notifiers[type].push({id: `${type}${configData.notifiers[type].length + 1}`, token: '', server_url: ''});
   renderNotifierModal();
 }
-function removeGlobalToken(type, idx){
-  configData.notifiers[type].splice(idx, 1);
-  renderNotifierModal();
-}
-function updateGlobalToken(type, idx, key, value){
-  configData.notifiers[type][idx][key] = value;
-}
+function removeGlobalToken(type, idx){ configData.notifiers[type].splice(idx, 1); renderNotifierModal(); }
+function updateGlobalToken(type, idx, key, value){ configData.notifiers[type][idx][key] = value; }
 
-// ---------- 群组列表主渲染 ----------
+
+/* --- ★★★ 渲染逻辑：主界面群组列表 ★★★ --- */
 function renderGroups(expandedIndex = -1) {
   let groups = configData.groups;
-  let html = '';
+  const container = document.getElementById('groupList');
   if (groups.length === 0) {
-    html = `<div style="text-align:center; padding: 4rem; color: var(--text-secondary); border: 2px dashed var(--border); border-radius: var(--radius);">
-        <h3 style="margin-top:0">暂无群组</h3>
-        <p>请点击右上角按钮添加监听配置。</p>
+    container.innerHTML = `<div style="text-align:center; padding: 4rem; color: var(--text-secondary); border: 2px dashed var(--border); border-radius: var(--radius);">
+        <h3 style="margin:0 0 0.5rem; color:var(--text-main);">暂无群组</h3>
+        <p style="margin:0;">请点击右上角按钮添加。</p>
     </div>`;
-  } else {
-    groups.forEach((group, idx) => {
+    return;
+  }
+  container.innerHTML = groups.map((group, idx) => {
       const isExpanded = idx === expandedIndex;
-      html += `<div class="group-card ${isExpanded ? 'expanded' : ''}" id="group-card-${idx}">
+      return `<div class="group-card ${isExpanded ? 'expanded' : ''}" id="group-card-${idx}">
         <div class="group-card-header" onclick="toggleGroup(${idx})">
-          <div class="toggle-icon-wrap">
-             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-          </div>
-          <div class="group-title">
-            ${group.name || '未命名群组'}
-            <span class="id-badge">${group.id}</span>
-          </div>
-          <div class="header-controls">
-            <button class="btn-icon btn-danger-icon" onclick="deleteGroup(event, ${idx})" title="删除群组">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-          </div>
+          <div class="toggle-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+          <div class="group-title">${group.name || '未命名'}<span class="id-badge">${group.id}</span></div>
+          <button class="btn-icon btn-icon-danger" onclick="deleteGroup(event, ${idx})" title="删除"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
         </div>
         <div class="group-card-body">
             <div class="form-group">
@@ -370,7 +304,7 @@ function renderGroups(expandedIndex = -1) {
             <div class="form-group" style="margin-top:2rem;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                 <label style="margin:0">关键字推送规则</label>
-                <button type="button" class="btn btn-secondary" onclick="addKeywordToGroup(${idx})" style="height:32px; font-size:0.85rem;">+ 添加关键字</button>
+                <button type="button" class="btn btn-secondary" onclick="addKeywordToGroup(${idx})" style="height:32px; font-size:0.85rem;">+ 关键字</button>
               </div>
               <div id="kwlist-${idx}">
                 ${(group.keywords || []).map((kw, kidx) => createKeywordRow(idx, kidx, kw)).join('')}
@@ -378,191 +312,95 @@ function renderGroups(expandedIndex = -1) {
             </div>
         </div>
       </div>`;
-    });
-  }
-  document.getElementById('groupList').innerHTML = html;
+  }).join('');
 }
 
-// ★★★ 重点修改：生成开关样式的 Checkbox ★★★
 function createNotifierCheckboxes(containerId, selectedValues = [], onchangeCallback = '') {
     const options = getAvailableNotifiers();
-    const checkboxesHtml = options.map(opt => {
+    const html = options.map(opt => {
         const isChecked = selectedValues.includes(opt.id);
-        // 使用 label 包裹整个开关结构，利用 toggleCheck 类来处理点击时的样式变化
-        return `
-        <label class="switch-label ${isChecked ? 'checked' : ''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
-            <input type="checkbox" value="${opt.id}" name="${containerId}" 
-                   ${isChecked ? 'checked' : ''}
-                   onchange="${onchangeCallback}">
+        return `<label class="switch-label ${isChecked ? 'checked' : ''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
+            <input type="checkbox" value="${opt.id}" name="${containerId}" ${isChecked ? 'checked' : ''} onchange="${onchangeCallback}">
             <div class="slider-track"><div class="slider-thumb"></div></div>
             <span class="switch-text">${opt.name}</span>
-        </label>
-    `}).join('');
-    
-    // 使用 Grid 布局容器
-    return `<div id="${containerId}" class="switch-grid">${checkboxesHtml}</div>`;
-}
-
-async function updateGroupNotifier(groupIdx) {
-    const containerId = `group-${groupIdx}-default`;
-    // 注意：这里需要重新获取选中状态，因为 switch 样式改变了结构
-    const checked = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
-    configData.groups[groupIdx].default_notifiers = checked;
-    await saveConfigToServer();
-}
-async function updateKeywordNotifier(groupIdx, kidx) {
-    const containerId = `group-${groupIdx}-kw-${kidx}`;
-    const checked = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
-    configData.groups[groupIdx].keywords[kidx].notifiers = checked;
-    await saveConfigToServer();
+        </label>`;
+    }).join('');
+    return `<div class="switch-grid">${html}</div>`;
 }
 
 function createKeywordRow(groupIdx, kidx, kwObj){
-  const containerId = `group-${groupIdx}-kw-${kidx}`;
-  return `<div class="keyword-block">
-    <div class="keyword-input-row">
-      <input type="text" value="${kwObj.word||''}" placeholder="输入匹配关键字..." onchange="updateKeywordWord(${groupIdx}, ${kidx}, this.value)">
-      <button type="button" class="btn-icon btn-danger-icon" onclick="removeKeyword(${groupIdx}, ${kidx})" title="删除规则"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+  return `<div class="list-card">
+    <div style="display:flex; gap:0.5rem; margin-bottom:0.8rem;">
+      <input type="text" value="${kwObj.word||''}" placeholder="输入关键字..." onchange="updateKeywordWord(${groupIdx}, ${kidx}, this.value)">
+      <button type="button" class="btn-icon btn-icon-danger" onclick="removeKeyword(${groupIdx}, ${kidx})" style="border:1px solid var(--border); border-radius:10px; width:42px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
     </div>
-    <div class="keyword-notifiers">
-      ${createNotifierCheckboxes(containerId, kwObj.notifiers || [], `updateKeywordNotifier(${groupIdx}, ${kidx})`)}
-    </div>
+    ${createNotifierCheckboxes(`group-${groupIdx}-kw-${kidx}`, kwObj.notifiers || [], `updateKeywordNotifier(${groupIdx}, ${kidx})`)}
   </div>`;
 }
-async function addKeywordToGroup(groupIdx){
-  if(!configData.groups[groupIdx].keywords) configData.groups[groupIdx].keywords=[];
-  configData.groups[groupIdx].keywords.push({word:'', notifiers:[]});
-  if (await saveConfigToServer()) {
-    renderGroups(groupIdx);
-  }
-}
-async function updateKeywordWord(groupIdx, kidx, val){ 
-    configData.groups[groupIdx].keywords[kidx].word = val.trim(); 
-    await saveConfigToServer();
-}
-async function removeKeyword(groupIdx, kidx){ 
-    configData.groups[groupIdx].keywords.splice(kidx,1); 
-    if (await saveConfigToServer()) {
-        renderGroups(groupIdx);
-    }
-}
-async function deleteGroup(event, idx) {
-    event.stopPropagation();
-    if (confirm('确定要删除这个群组配置吗？')) {
-        configData.groups.splice(idx, 1);
-        if (await saveConfigToServer()) {
-            renderGroups();
-        }
-    }
-}
 
-// ---------- 添加群组弹窗逻辑 ----------
+async function updateGroupNotifier(gId) { configData.groups[gId].default_notifiers = Array.from(document.querySelectorAll(`#group-${gId}-default input:checked`)).map(el => el.value); await saveConfigToServer(); }
+async function updateKeywordNotifier(gId, kId) { configData.groups[gId].keywords[kId].notifiers = Array.from(document.querySelectorAll(`#group-${gId}-kw-${kId} input:checked`)).map(el => el.value); await saveConfigToServer(); }
+async function updateKeywordWord(gId, kId, val){ configData.groups[gId].keywords[kId].word = val.trim(); await saveConfigToServer(); }
+async function addKeywordToGroup(gId){ if(!configData.groups[gId].keywords) configData.groups[gId].keywords=[]; configData.groups[gId].keywords.push({word:'', notifiers:[]}); if(await saveConfigToServer()) renderGroups(gId); }
+async function removeKeyword(gId, kId){ configData.groups[gId].keywords.splice(kId,1); if(await saveConfigToServer()) renderGroups(gId); }
+async function deleteGroup(e, idx) { e.stopPropagation(); if(confirm('删除此群组？')) { configData.groups.splice(idx, 1); if(await saveConfigToServer()) renderGroups(); } }
+
+/* --- 弹窗内的关键字与默认通道逻辑 (复用) --- */
 function renderModalDefaultNotify(selectedValues){
-  const container = document.getElementById('modalDefaultNotifyContainer');
-  // 复用上面的 createNotifierCheckboxes 逻辑，但不需要 callback
-  const options = getAvailableNotifiers();
-  container.innerHTML = options.map(opt => `
-      <label class="switch-label ${selectedValues.includes(opt.id) ? 'checked' : ''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
-          <input type="checkbox" value="${opt.id}" name="modal-default-notify"
-                 ${selectedValues.includes(opt.id) ? 'checked' : ''}>
-          <div class="slider-track"><div class="slider-thumb"></div></div>
-          <span class="switch-text">${opt.name}</span>
-      </label>
-  `).join('');
+  document.getElementById('modalDefaultNotifyContainer').innerHTML = getAvailableNotifiers().map(opt => 
+    `<label class="switch-label ${selectedValues.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
+        <input type="checkbox" value="${opt.id}" ${selectedValues.includes(opt.id)?'checked':''}>
+        <div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span>
+    </label>`).join('');
 }
 let addGroupKeywords = [];
-function renderKeywordRows(keywords){
-  addGroupKeywords = keywords;
-  let kwDiv = document.getElementById('addGroupKeywords');
-  if(keywords.length === 0) {
-      kwDiv.innerHTML = '<div style="text-align:center; color:var(--text-secondary); font-size:0.85rem; padding:1rem; background:#f9fafb; border-radius:8px;">暂无关键字规则</div>';
-      return;
-  }
-  kwDiv.innerHTML = keywords.map((kw, idx) => `
-    <div class="keyword-block" style="margin-bottom:0.75rem;">
-      <div class="keyword-input-row">
-        <input type="text" value="${kw.word||''}" onchange="updateNewKeywordWord(${idx}, this.value)" placeholder="输入关键字...">
-        <button type="button" class="btn-icon btn-danger-icon" onclick="removeKeywordRow(${idx})"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+function renderKeywordRows(kws){
+  addGroupKeywords = kws;
+  document.getElementById('addGroupKeywords').innerHTML = kws.length === 0 ? '<div style="text-align:center; color:var(--text-secondary); font-size:0.8rem; padding:1rem; border:1px dashed var(--border); border-radius:10px;">暂无规则</div>' :
+  kws.map((kw, idx) => `
+    <div class="list-card" style="margin-bottom:0.5rem; padding:0.8rem;">
+      <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+        <input type="text" value="${kw.word||''}" onchange="updateNewKeywordWord(${idx}, this.value)" placeholder="关键字">
+        <button type="button" class="btn-icon btn-icon-danger" onclick="removeKeywordRow(${idx})" style="border:1px solid var(--border); border-radius:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
-      <div class="keyword-notifiers">
-        ${createNewKeywordNotifyCheckboxes(idx, kw.notifiers||[])}
+      <div class="switch-grid" id="modal-kw-${idx}">${getAvailableNotifiers().map(opt => 
+          `<label class="switch-label ${kw.notifiers.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
+            <input type="checkbox" value="${opt.id}" ${kw.notifiers.includes(opt.id)?'checked':''}>
+            <div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span>
+           </label>`).join('')}
       </div>
-    </div>`
-  ).join('');
-}
-function createNewKeywordNotifyCheckboxes(kidx, vals){
-  const containerId = `modal-kw-${kidx}`;
-  const onchange = `updateNewKeywordNotify(${kidx})`;
-  // 复用逻辑
-  return createNotifierCheckboxes(containerId, vals, onchange);
+    </div>`).join('');
 }
 function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[]}); renderKeywordRows(addGroupKeywords); }
 function removeKeywordRow(idx){ addGroupKeywords.splice(idx, 1); renderKeywordRows(addGroupKeywords); }
 function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val.trim(); }
-function updateNewKeywordNotify(idx){
-  const containerId = `modal-kw-${idx}`;
-  addGroupKeywords[idx].notifiers = Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(el => el.value);
-}
 
-// ---------- 表单提交与保存 ----------
+/* --- 提交 --- */
 document.getElementById('addGroupForm').onsubmit = async function(e){
   e.preventDefault();
-  const errorSpan = document.getElementById('addGroupError');
   const gid = document.getElementById('modalGroupId').value.trim();
-  const name = document.getElementById('modalGroupName').value.trim();
-  const defaultNotify = Array.from(document.querySelectorAll('#modalDefaultNotifyContainer input:checked')).map(el => el.value);
-  if(!gid) { errorSpan.textContent="群组ID是必填项。"; return; }
-  if(configData.groups.some(g => g.id === gid)) { errorSpan.textContent="该群组ID已存在。"; return; }
+  if(!gid) return document.getElementById('addGroupError').textContent="ID必填";
+  if(configData.groups.some(g => g.id === gid)) return document.getElementById('addGroupError').textContent="ID已存在";
   
-  const newGroup = {
-    id: gid, name: name, default_notifiers: defaultNotify,
+  // 收集新建关键字行的 checkbox 状态
+  addGroupKeywords.forEach((kw, i) => { kw.notifiers = Array.from(document.querySelectorAll(`#modal-kw-${i} input:checked`)).map(el=>el.value); });
+  
+  configData.groups.push({
+    id: gid, name: document.getElementById('modalGroupName').value.trim(),
+    default_notifiers: Array.from(document.querySelectorAll('#modalDefaultNotifyContainer input:checked')).map(el=>el.value),
     keywords: JSON.parse(JSON.stringify(addGroupKeywords))
-  };
-  configData.groups.push(newGroup);
-  
-  if (await saveConfigToServer()) {
-    const newIndex = configData.groups.length - 1;
-    closeAddGroupModal();
-    renderGroups(newIndex);
-  } else {
-    errorSpan.textContent = "保存失败，请检查网络或服务。";
-    configData.groups.pop(); 
-  }
+  });
+  if(await saveConfigToServer()) { closeAddGroupModal(); renderGroups(configData.groups.length-1); }
 };
 
 document.getElementById('notifierForm').onsubmit = async function(e){
   e.preventDefault();
-  const statusSpan = document.getElementById('notifierStatus');
-  statusSpan.textContent = "正在保存...";
-  statusSpan.style.color = 'var(--text-secondary)';
-
-  const oldNotifiers = JSON.parse(JSON.stringify(configData.notifiers));
-  
-  configData.notifiers.email = {
-    msmtp_host: document.getElementById('msmtp_host').value,
-    msmtp_port: document.getElementById('msmtp_port').value,
-    msmtp_user: document.getElementById('msmtp_user').value,
-    msmtp_pass: document.getElementById('msmtp_pass').value,
-    msmtp_from: document.getElementById('msmtp_from').value
-  };
-
-  if (await saveConfigToServer()) {
-      statusSpan.textContent = "保存成功！";
-      statusSpan.style.color = 'var(--success)';
-      setTimeout(() => {
-          closeNotifierModal();
-          renderGroups();
-      }, 1000);
-  } else {
-      statusSpan.textContent = "保存失败，配置已回滚。";
-      statusSpan.style.color = 'var(--danger)';
-      configData.notifiers = oldNotifiers; 
-  }
+  const s = document.getElementById('notifierStatus'); s.textContent="保存中...";
+  configData.notifiers.email = { msmtp_host: document.getElementById('msmtp_host').value, msmtp_port: document.getElementById('msmtp_port').value, msmtp_user: document.getElementById('msmtp_user').value, msmtp_pass: document.getElementById('msmtp_pass').value, msmtp_from: document.getElementById('msmtp_from').value };
+  if(await saveConfigToServer()){ s.textContent="成功"; setTimeout(()=>closeNotifierModal(),500); } else s.textContent="失败";
 };
 
 function logout(){ location.href="/logout"; }
-
-// ---------- 初始渲染 ----------
 renderGroups();
 </script>
 </body>
