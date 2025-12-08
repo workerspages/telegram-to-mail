@@ -2,6 +2,7 @@ import asyncio
 import os
 import json
 import aiohttp
+from datetime import datetime
 from telethon import TelegramClient, events
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -185,6 +186,53 @@ async def handle_message(event):
     else:
         print(f"Message from '{group_name}' did not trigger any notifiers.")
 
+# --- 定时任务处理逻辑 ---
+async def scheduled_task_worker(client):
+    """后台任务：每分钟检查并执行定时发送任务"""
+    print("Scheduled task worker started.")
+    last_trigger_time = None
+    
+    while True:
+        try:
+            # 获取当前时间
+            now = datetime.now()
+            current_time_str = now.strftime("%H:%M")
+            
+            # 简单的防抖，防止同一分钟内重复执行（虽然sleep逻辑已经做了对齐）
+            if last_trigger_time == current_time_str:
+                await asyncio.sleep(1)
+                continue
+                
+            config = load_config()
+            if config:
+                tasks = config.get('scheduled_tasks', [])
+                for task in tasks:
+                    # 检查任务是否启用且时间匹配
+                    if task.get('enabled', True) and task.get('time') == current_time_str:
+                        target = task.get('target')
+                        msg = task.get('message')
+                        
+                        if target and msg:
+                            try:
+                                # 尝试解析 target，如果是纯数字字符串则转为 int (Telegram ID)，否则视为 username
+                                entity = int(target) if target.lstrip('-').isdigit() else target
+                                await client.send_message(entity, msg)
+                                print(f"[Schedule] Sent message to {target} at {current_time_str}. Content: {msg}")
+                            except Exception as e:
+                                print(f"[Schedule] Failed to send to {target}: {e}")
+            
+            last_trigger_time = current_time_str
+            
+            # 计算距离下一分钟还有多少秒，通过 sleep 对齐时间
+            # 比如现在是 12:00:10，则 sleep 50秒，在 12:01:00 附近唤醒
+            seconds_to_sleep = 60 - now.second
+            await asyncio.sleep(seconds_to_sleep)
+            
+        except Exception as e:
+            print(f"Error in scheduled worker: {e}")
+            # 出错后等待一分钟再重试，防止死循环刷屏
+            await asyncio.sleep(60)
+
 # --- 主程序入口 ---
 async def main():
     """主函数，初始化并运行客户端"""
@@ -205,6 +253,7 @@ async def main():
 
     client = TelegramClient(SESSION_NAME, api_id, api_hash)
     
+    # 注册消息监听器
     @client.on(events.NewMessage)
     async def event_handler(event):
         await handle_message(event)
@@ -212,6 +261,10 @@ async def main():
     try:
         await client.start()
         print("Telegram client started successfully.")
+        
+        # 启动定时任务后台协程
+        client.loop.create_task(scheduled_task_worker(client))
+        
         await client.run_until_disconnected()
     except Exception as e:
         print(f"An error occurred while running the client: {e}")
