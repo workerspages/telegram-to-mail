@@ -15,6 +15,10 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         <span>添加群组</span>
       </button>
+      <button class="btn btn-secondary" onclick="openScheduleModal()" title="定时发送任务">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span>定时任务</span>
+      </button>
       <button class="btn-icon" onclick="openNotifierModal()" title="推送通道设置">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
       </button>
@@ -27,7 +31,6 @@
   <main id="groupList"></main>
 </div>
 
-<!-- 推送通道配置弹窗 -->
 <div id="notifierModalMask" class="modal-mask">
   <div class="modal">
     <div class="modal-header">
@@ -66,7 +69,6 @@
   </div>
 </div>
 
-<!-- 添加/编辑群组弹窗 -->
 <div id="addGroupModalMask" class="modal-mask">
   <div class="modal">
      <div class="modal-header">
@@ -98,8 +100,28 @@
   </div>
 </div>
 
+<div id="scheduleModalMask" class="modal-mask">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>定时任务 (每日签到)</h2>
+      <button class="close" onclick="closeScheduleModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="scheduleTaskList"></div>
+      <button type="button" class="btn btn-primary btn-small" onclick="addScheduleTask()" style="margin-top: 1rem; width: 100%;">+ 添加新任务</button>
+    </div>
+    <div class="modal-status"><span id="scheduleStatus"></span></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" onclick="closeScheduleModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let configData = {{ config|tojson|safe }};
+// 确保 scheduled_tasks 数组存在
+if (!configData.scheduled_tasks) configData.scheduled_tasks = [];
+
 const pushTypes = { bark: "Bark", pushplus: "Pushplus", email: "Email" };
 
 // ---------- 核心：保存配置到服务器 ----------
@@ -153,6 +175,86 @@ function openAddGroupModal(){
   renderKeywordRows([]);
 }
 function closeAddGroupModal(){ document.getElementById('addGroupModalMask').classList.remove('active'); }
+
+function openScheduleModal(){
+  renderScheduleList();
+  document.getElementById('scheduleModalMask').classList.add('active');
+  document.getElementById('scheduleStatus').textContent = "";
+}
+function closeScheduleModal(){ document.getElementById('scheduleModalMask').classList.remove('active'); }
+
+
+// ---------- 定时任务逻辑 (新增) ----------
+function renderScheduleList() {
+    const container = document.getElementById('scheduleTaskList');
+    if (configData.scheduled_tasks.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#999; padding: 1rem;">暂无定时任务</div>';
+        return;
+    }
+    
+    container.innerHTML = configData.scheduled_tasks.map((task, idx) => `
+        <div class="keyword-block" style="background-color: #f8f9fa;">
+            <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 0.8rem; color: #666;">目标 (Username 或 ID)</label>
+                    <input type="text" value="${task.target || ''}" placeholder="@bot_name 或 ID" onchange="updateScheduleTask(${idx}, 'target', this.value)">
+                </div>
+                <div style="width: 110px;">
+                    <label style="font-size: 0.8rem; color: #666;">每天发送时间</label>
+                    <input type="time" value="${task.time || '08:00'}" onchange="updateScheduleTask(${idx}, 'time', this.value)">
+                </div>
+            </div>
+            <div style="margin-bottom: 8px;">
+                 <label style="font-size: 0.8rem; color: #666;">发送内容</label>
+                 <input type="text" value="${task.message || ''}" placeholder="/checkin" onchange="updateScheduleTask(${idx}, 'message', this.value)">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label style="display:flex; align-items:center; cursor:pointer; font-size: 0.9rem;">
+                    <input type="checkbox" ${task.enabled !== false ? 'checked' : ''} onchange="updateScheduleTask(${idx}, 'enabled', this.checked)"> 启用任务
+                </label>
+                <button type="button" class="btn-icon" onclick="removeScheduleTask(${idx})" title="删除任务" style="color: var(--danger-color);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> 删除
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function addScheduleTask() {
+    configData.scheduled_tasks.push({
+        target: '@sheeridverifier_bot',
+        message: '/checkin',
+        time: '09:00',
+        enabled: true
+    });
+    if (await saveConfigToServer()) {
+        renderScheduleList();
+    }
+}
+
+async function removeScheduleTask(idx) {
+    if(confirm("确定要删除此任务吗？")) {
+        configData.scheduled_tasks.splice(idx, 1);
+        if (await saveConfigToServer()) {
+            renderScheduleList();
+        }
+    }
+}
+
+async function updateScheduleTask(idx, key, value) {
+    configData.scheduled_tasks[idx][key] = value;
+    const status = document.getElementById('scheduleStatus');
+    status.textContent = "保存中...";
+    status.style.color = "#666";
+    if (await saveConfigToServer()) {
+        status.textContent = "已保存";
+        status.style.color = "var(--success-color)";
+        setTimeout(() => { status.textContent = ""; }, 1500);
+    } else {
+        status.textContent = "保存失败";
+        status.style.color = "var(--danger-color)";
+    }
+}
 
 // ---------- 推送通道弹窗渲染 ----------
 function renderNotifierModal(){
