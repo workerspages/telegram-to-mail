@@ -107,6 +107,9 @@
       <button class="close" onclick="closeScheduleModal()">&times;</button>
     </div>
     <div class="modal-body">
+      <p style="color:var(--text-light); font-size:0.85rem; margin-bottom:1rem;">
+        系统将在每天设定的“开始”与“结束”时间之间随机选择一刻发送消息，以防封号。
+      </p>
       <div id="scheduleTaskList"></div>
       <button type="button" class="btn btn-primary btn-small" onclick="addScheduleTask()" style="margin-top: 1rem; width: 100%;">+ 添加新任务</button>
     </div>
@@ -184,7 +187,7 @@ function openScheduleModal(){
 function closeScheduleModal(){ document.getElementById('scheduleModalMask').classList.remove('active'); }
 
 
-// ---------- 定时任务逻辑 (新增) ----------
+// ---------- 定时任务逻辑 (修改：支持 Start/End 时间段) ----------
 function renderScheduleList() {
     const container = document.getElementById('scheduleTaskList');
     if (configData.scheduled_tasks.length === 0) {
@@ -194,16 +197,20 @@ function renderScheduleList() {
     
     container.innerHTML = configData.scheduled_tasks.map((task, idx) => `
         <div class="keyword-block" style="background-color: #f8f9fa;">
-            <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-                <div style="flex: 1;">
-                    <label style="font-size: 0.8rem; color: #666;">目标 (Username 或 ID)</label>
-                    <input type="text" value="${task.target || ''}" placeholder="@bot_name 或 ID" onchange="updateScheduleTask(${idx}, 'target', this.value)">
-                </div>
-                <div style="width: 110px;">
-                    <label style="font-size: 0.8rem; color: #666;">每天发送时间</label>
-                    <input type="time" value="${task.time || '08:00'}" onchange="updateScheduleTask(${idx}, 'time', this.value)">
-                </div>
+            <div style="margin-bottom: 8px;">
+                 <label style="font-size: 0.8rem; color: #666;">目标 (Username 或 ID)</label>
+                 <input type="text" value="${task.target || ''}" placeholder="@bot_name 或 ID" onchange="updateScheduleTask(${idx}, 'target', this.value)">
             </div>
+            
+            <div style="margin-bottom: 8px;">
+                 <label style="font-size: 0.8rem; color: #666;">发送时间段 (在此区间内随机发送)</label>
+                 <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="time" value="${task.time_start || task.time || '08:00'}" onchange="updateScheduleTask(${idx}, 'time_start', this.value)" style="flex:1;">
+                    <span style="color:#666;">-</span>
+                    <input type="time" value="${task.time_end || task.time || '09:00'}" onchange="updateScheduleTask(${idx}, 'time_end', this.value)" style="flex:1;">
+                 </div>
+            </div>
+
             <div style="margin-bottom: 8px;">
                  <label style="font-size: 0.8rem; color: #666;">发送内容</label>
                  <input type="text" value="${task.message || ''}" placeholder="/checkin" onchange="updateScheduleTask(${idx}, 'message', this.value)">
@@ -224,7 +231,8 @@ async function addScheduleTask() {
     configData.scheduled_tasks.push({
         target: '@sheeridverifier_bot',
         message: '/checkin',
-        time: '09:00',
+        time_start: '09:00',
+        time_end: '10:00',
         enabled: true
     });
     if (await saveConfigToServer()) {
