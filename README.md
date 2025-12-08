@@ -56,21 +56,25 @@ cd telegram-to-mail
 打开项目根目录下的 `docker-compose.yml` 文件，填写必要的环境变量：
 
 ```yaml
+version: '3.8'
 services:
   telegram-to-mail:
     build: .
-    # ...
+    ports:
+      - "5000:5000"
     environment:
-      # --- 必填配置 ---
-      - WEB_USERNAME=admin                              # 设置您的后台登录用户名
-      - WEB_PASSWORD=your_strong_password             # 设置您的后台登录密码
-      - API_ID=12345678                                 # 填入您的 Telegram API_ID
-      - API_HASH=your_telegram_api_hash                 # 填入您的 Telegram API_HASH
-      - WEB_SECRET_KEY=generate_a_long_random_string    # ★ 务必修改为一个长且随机的字符串，用于加密 session
-
-      # --- 选填：Cloudflare Tunnel ---
-      # 如需启用，请取消注释并填入您的 Token。留空则不启用。
-      - TUNNEL_TOKEN=
+      - WEB_USERNAME=admin
+      - WEB_PASSWORD=admin123
+      - API_ID=12345678
+      - API_HASH=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      # 要启用 Cloudflare Tunnel 功能，请取消下面一行的注释，并粘贴您的 Token。
+      # 如果此行被注释或值为空，则容器启动时不会启用 Tunnel 功能。
+      - TUNNEL_TOKEN=     
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
 ```
 
 **第三步：启动服务**
