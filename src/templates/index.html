@@ -156,8 +156,9 @@ function toggleGroup(idx) {
 
 function getAvailableNotifiers() {
     let options = [{ id: 'email', name: 'Email' }];
-    if (configData.notifiers.bark) configData.notifiers.bark.forEach(n => options.push({ id: n.id, name: `${pushTypes.bark} ${n.id}` }));
-    if (configData.notifiers.pushplus) configData.notifiers.pushplus.forEach(n => options.push({ id: n.id, name: `${pushTypes.pushplus} ${n.id}` }));
+    // ★★★ 修复：仅显示 ID，不显示冗余的类型名称，配合 CSS 截断，解决溢出问题 ★★★
+    if (configData.notifiers.bark) configData.notifiers.bark.forEach(n => options.push({ id: n.id, name: n.id }));
+    if (configData.notifiers.pushplus) configData.notifiers.pushplus.forEach(n => options.push({ id: n.id, name: n.id }));
     return options;
 }
 
@@ -268,15 +269,12 @@ function renderNotifierModal(){
   document.getElementById('pushTokenList').innerHTML = (n.pushplus || []).map((t, i) => renderTokenRow(t, i, 'pushplus')).join('');
 }
 
-// ★★★ 核心修复：使用时间戳生成唯一ID，解决删除后再添加导致的ID重复问题 ★★★
 function addGlobalToken(type){
   if (!configData.notifiers[type]) configData.notifiers[type] = [];
-  // 以前是 length + 1，删除后会重复。现在用时间戳，绝对唯一。
   let nextId = `${type}_${new Date().getTime()}`; 
   configData.notifiers[type].push({id: nextId, token: '', server_url: ''});
   renderNotifierModal();
 }
-
 function removeGlobalToken(type, idx){ configData.notifiers[type].splice(idx, 1); renderNotifierModal(); }
 function updateGlobalToken(type, idx, key, value){ configData.notifiers[type][idx][key] = value; }
 
@@ -323,7 +321,7 @@ function createNotifierCheckboxes(containerId, selectedValues = [], onchangeCall
     const options = getAvailableNotifiers();
     const html = options.map(opt => {
         const isChecked = selectedValues.includes(opt.id);
-        return `<label class="switch-label ${isChecked ? 'checked' : ''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
+        return `<label class="switch-label ${isChecked ? 'checked' : ''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)" title="${opt.name}">
             <input type="checkbox" value="${opt.id}" name="${containerId}" ${isChecked ? 'checked' : ''} onchange="${onchangeCallback}">
             <div class="slider-track"><div class="slider-thumb"></div></div>
             <span class="switch-text">${opt.name}</span>
@@ -369,7 +367,7 @@ async function deleteGroup(e, idx) { e.stopPropagation(); if(confirm('删除此�
 /* --- 弹窗内的关键字与默认通道逻辑 (复用) --- */
 function renderModalDefaultNotify(selectedValues){
   document.getElementById('modalDefaultNotifyContainer').innerHTML = getAvailableNotifiers().map(opt => 
-    `<label class="switch-label ${selectedValues.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
+    `<label class="switch-label ${selectedValues.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)" title="${opt.name}">
         <input type="checkbox" value="${opt.id}" ${selectedValues.includes(opt.id)?'checked':''}>
         <div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span>
     </label>`).join('');
@@ -387,7 +385,7 @@ function renderKeywordRows(kws){
       
       <div style="margin-bottom:0.8rem;">
           <div class="switch-grid" id="modal-kw-${idx}">${getAvailableNotifiers().map(opt => 
-              `<label class="switch-label ${kw.notifiers.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)">
+              `<label class="switch-label ${kw.notifiers.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)" title="${opt.name}">
                 <input type="checkbox" value="${opt.id}" ${kw.notifiers.includes(opt.id)?'checked':''}>
                 <div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span>
                </label>`).join('')}
