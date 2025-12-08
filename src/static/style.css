@@ -164,7 +164,7 @@ input:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 
 .modal-body { padding: 1.5rem; overflow-y: auto; }
 .modal-actions { padding: 1rem 1.5rem; border-top: 1px solid var(--border); background: #f9fafb; display: flex; justify-content: flex-end; gap: 0.75rem; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
 
-/* --- 弹窗内的列表卡片 --- */
+/* --- 弹窗内的列表卡片 (用于 Token, 定时任务, 关键字) --- */
 .list-card {
   background: #fff; border: 1px solid var(--border); border-radius: 12px;
   padding: 1rem; margin-bottom: 0.75rem; position: relative;
@@ -181,60 +181,6 @@ input:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 
 .time-range-group input { border: none !important; background: transparent !important; box-shadow: none !important; text-align: center; height: 38px; }
 .time-separator { color: var(--text-secondary); font-weight: bold; padding: 0 0.5rem; }
 
-/* ========================================= */
-/* ★★★ 登录页面专属样式 (Login Page) ★★★ */
-/* ========================================= */
-
-.login-body {
-  /* 高级感渐变背景 (Indigo to Violet) */
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  min-height: 100vh;
-  display: flex; justify-content: center; align-items: center;
-  padding: 1.5rem;
-}
-
-.login-container {
-  width: 100%; max-width: 420px;
-  /* 磨砂玻璃拟态效果 */
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 24px;
-  padding: 3rem 2.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-.login-header { text-align: center; margin-bottom: 2.5rem; }
-.login-header h2 { 
-    font-size: 1.75rem; font-weight: 800; color: #111827; 
-    margin: 0 0 0.5rem; letter-spacing: -0.025em; 
-}
-.login-header p { color: #6b7280; font-size: 0.95rem; margin: 0; }
-
-.login-container .form-group label {
-    font-size: 0.9rem; color: #4b5563; margin-bottom: 0.5rem;
-}
-
-.login-container input {
-    background: #f3f4f6; border-color: transparent; height: 48px; /* 稍微加高 */
-}
-.login-container input:focus {
-    background: #fff; border-color: var(--primary); 
-}
-
-.login-container .btn-primary {
-    width: 100%; height: 48px; margin-top: 1.5rem;
-    font-size: 1rem; letter-spacing: 0.02em;
-    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3); /* 配合背景色的阴影 */
-    background: linear-gradient(to right, #6366f1, #8b5cf6); /* 按钮也用渐变呼应 */
-}
-.login-container .btn-primary:hover {
-    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
-    transform: translateY(-2px);
-}
-
-.error-banner {
-    background: #fef2f2; color: #ef4444; border: 1px solid #fecaca;
-    padding: 0.75rem; border-radius: 10px; margin-bottom: 1.5rem;
-    font-size: 0.9rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-}
+/* 登录页 */
+.login-body { background: #f3f4f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+.login-container { width: 100%; max-width: 400px; padding: 2.5rem; background: #fff; border-radius: 20px; box-shadow: var(--shadow-lg); }
