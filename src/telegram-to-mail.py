@@ -2,7 +2,8 @@ import asyncio
 import os
 import json
 import aiohttp
-from datetime import datetime
+import random
+from datetime import datetime, time as dt_time
 from telethon import TelegramClient, events
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -13,6 +14,8 @@ from email import encoders
 CONFIG_FILE = 'config.json'
 SESSION_DIR = './session_data'
 SESSION_NAME = os.path.join(SESSION_DIR, 'telegram.session')
+# 新增：用于记录任务当天是否已执行的状态文件
+STATE_FILE = os.path.join(SESSION_DIR, 'schedule_state.json')
 
 # --- 配置加载与管理 ---
 def load_config():
@@ -26,6 +29,24 @@ def load_config():
     except (json.JSONDecodeError, IOError) as e:
         print(f"Error reading or parsing config file: {e}")
         return None
+
+def load_state():
+    """加载定时任务状态"""
+    if not os.path.exists(STATE_FILE):
+        return {}
+    try:
+        with open(STATE_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_state(state):
+    """保存定时任务状态"""
+    try:
+        with open(STATE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving schedule state: {e}")
 
 def update_msmtp_config(email_config):
     """动态更新 msmtp 配置文件"""
@@ -186,51 +207,130 @@ async def handle_message(event):
     else:
         print(f"Message from '{group_name}' did not trigger any notifiers.")
 
-# --- 定时任务处理逻辑 ---
+# --- 定时任务处理逻辑 (随机时间版) ---
 async def scheduled_task_worker(client):
-    """后台任务：每分钟检查并执行定时发送任务"""
-    print("Scheduled task worker started.")
-    last_trigger_time = None
+    """
+    后台任务：每分钟检查定时任务。
+    支持在设定的 [Start, End] 时间段内随机触发。
+    """
+    print("Scheduled task worker started (Randomized Mode).")
     
+    # 内存中的随机目标时间缓存： { "task_signature": datetime_object }
+    # 用于确保每天只生成一次随机时间
+    daily_random_targets = {}
+    
+    last_check_minute = None
+
     while True:
         try:
-            # 获取当前时间
             now = datetime.now()
-            current_time_str = now.strftime("%H:%M")
+            today_str = now.strftime("%Y-%m-%d")
+            current_minute_str = now.strftime("%H:%M")
             
-            # 简单的防抖，防止同一分钟内重复执行（虽然sleep逻辑已经做了对齐）
-            if last_trigger_time == current_time_str:
+            # 简单的防抖，防止同一分钟内重复执行
+            if last_check_minute == current_minute_str:
                 await asyncio.sleep(1)
                 continue
                 
             config = load_config()
+            state = load_state() # 加载 { "task_sig": "2023-10-01" }
+            
             if config:
                 tasks = config.get('scheduled_tasks', [])
-                for task in tasks:
-                    # 检查任务是否启用且时间匹配
-                    if task.get('enabled', True) and task.get('time') == current_time_str:
-                        target = task.get('target')
-                        msg = task.get('message')
+                for idx, task in enumerate(tasks):
+                    if not task.get('enabled', True):
+                        continue
+
+                    target = task.get('target')
+                    msg = task.get('message')
+                    
+                    # 构造任务唯一签名 (简单使用内容组合，如果用户修改了配置，则视为新任务)
+                    # 使用 idx 是不安全的，因为删除中间任务会改变 idx，所以最好结合内容
+                    task_sig = f"{target}_{msg}_{task.get('time_start')}_{task.get('time_end')}_{idx}"
+                    
+                    # 检查今天是否已经运行过
+                    if state.get(task_sig) == today_str:
+                        continue
+
+                    # 解析时间段
+                    # 兼容旧配置：如果只有 time，则 start=end=time
+                    t_start_str = task.get('time_start') or task.get('time') or "08:00"
+                    t_end_str = task.get('time_end') or task.get('time') or "08:00"
+                    
+                    try:
+                        # 转换为今日的 datetime 对象
+                        h_s, m_s = map(int, t_start_str.split(':'))
+                        h_e, m_e = map(int, t_end_str.split(':'))
+                        dt_start = now.replace(hour=h_s, minute=m_s, second=0, microsecond=0)
+                        dt_end = now.replace(hour=h_e, minute=m_e, second=0, microsecond=0)
                         
-                        if target and msg:
+                        # 如果结束时间小于开始时间，假设是跨天任务（暂不支持跨天随机，简化为忽略）
+                        if dt_end < dt_start:
+                            continue
+
+                        # 如果当前时间早于开始时间，跳过
+                        if now < dt_start:
+                            continue
+                        
+                        # 如果当前时间晚于结束时间，说明今天错过了，标记为已“处理”（避免以后不断检查），或者留给明天
+                        if now > dt_end:
+                            # 这种情况下不发送，但也不标记为已发送，明天再试
+                            continue
+                        
+                        # --- 核心：在窗口期内 [Start, End] ---
+                        
+                        # 1. 确定今天的触发目标时间
+                        # 如果内存中没有这个任务今天的目标时间，生成一个
+                        target_key = f"{task_sig}_{today_str}"
+                        if target_key not in daily_random_targets:
+                            # 随机范围：从 max(现在, 开始时间) 到 结束时间
+                            # 这样如果重启容器时已经在窗口内，会从剩余时间内随机选一个
+                            time_min_ts = max(now.timestamp(), dt_start.timestamp())
+                            time_max_ts = dt_end.timestamp()
+                            
+                            if time_max_ts > time_min_ts:
+                                random_ts = random.uniform(time_min_ts, time_max_ts)
+                                random_dt = datetime.fromtimestamp(random_ts)
+                            else:
+                                # 窗口极小或已经到了，直接设为当前
+                                random_dt = now
+                            
+                            daily_random_targets[target_key] = random_dt
+                            print(f"[Schedule] Task {idx} target set to {random_dt.strftime('%H:%M:%S')} (Range: {t_start_str}-{t_end_str})")
+                        
+                        target_dt = daily_random_targets[target_key]
+                        
+                        # 2. 检查是否到达触发时间
+                        if now >= target_dt:
                             try:
-                                # 尝试解析 target，如果是纯数字字符串则转为 int (Telegram ID)，否则视为 username
+                                # 发送消息
                                 entity = int(target) if target.lstrip('-').isdigit() else target
                                 await client.send_message(entity, msg)
-                                print(f"[Schedule] Sent message to {target} at {current_time_str}. Content: {msg}")
+                                print(f"[Schedule] Executed task {idx}: Sent '{msg}' to {target}")
+                                
+                                # 记录状态：今天已发送
+                                state[task_sig] = today_str
+                                save_state(state)
+                                
+                                # 清理内存缓存
+                                if target_key in daily_random_targets:
+                                    del daily_random_targets[target_key]
+                                    
                             except Exception as e:
                                 print(f"[Schedule] Failed to send to {target}: {e}")
+                                
+                    except ValueError:
+                        print(f"[Schedule] Invalid time format for task {idx}")
+                        continue
+
+            last_check_minute = current_minute_str
             
-            last_trigger_time = current_time_str
-            
-            # 计算距离下一分钟还有多少秒，通过 sleep 对齐时间
-            # 比如现在是 12:00:10，则 sleep 50秒，在 12:01:00 附近唤醒
-            seconds_to_sleep = 60 - now.second
+            # 对齐时间：睡眠直到下一分钟的第0秒
+            seconds_to_sleep = 60 - datetime.now().second
             await asyncio.sleep(seconds_to_sleep)
             
         except Exception as e:
             print(f"Error in scheduled worker: {e}")
-            # 出错后等待一分钟再重试，防止死循环刷屏
             await asyncio.sleep(60)
 
 # --- 主程序入口 ---
