@@ -119,13 +119,17 @@ body {
 /* --- 表单 --- */
 .form-group { margin-bottom: 1.25rem; }
 .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9em; }
-input[type="text"], input[type="password"] {
+
+/* ★★★ 修改处：增加了 input[type="time"] 以解决高度不一致问题 ★★★ */
+input[type="text"], input[type="password"], input[type="time"] {
   display: block; width: 100%; padding: 0.75rem; font-size: 1rem;
   color: var(--text-color); background-color: #fff;
   border: 1px solid #ddd; border-radius: 8px;
   box-sizing: border-box; transition: all 0.2s;
+  /* 确保时间输入框高度一致 */
+  min-height: 48px; 
 }
-input[type="text"]:focus, input[type="password"]:focus {
+input[type="text"]:focus, input[type="password"]:focus, input[type="time"]:focus {
   border-color: var(--primary-color); outline: 0; box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
 }
 .checkbox-group {
