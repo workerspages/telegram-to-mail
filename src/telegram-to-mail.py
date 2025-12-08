@@ -14,42 +14,31 @@ from email import encoders
 CONFIG_FILE = 'config.json'
 SESSION_DIR = './session_data'
 SESSION_NAME = os.path.join(SESSION_DIR, 'telegram.session')
-# 新增：用于记录任务当天是否已执行的状态文件
 STATE_FILE = os.path.join(SESSION_DIR, 'schedule_state.json')
 
 # --- 配置加载与管理 ---
 def load_config():
-    """从 config.json 加载配置"""
     if not os.path.exists(CONFIG_FILE):
-        print(f"Error: Config file not found at {CONFIG_FILE}")
         return None
     try:
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError) as e:
-        print(f"Error reading or parsing config file: {e}")
+        print(f"Error reading config: {e}")
         return None
 
 def load_state():
-    """加载定时任务状态"""
-    if not os.path.exists(STATE_FILE):
-        return {}
+    if not os.path.exists(STATE_FILE): return {}
     try:
-        with open(STATE_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
+        with open(STATE_FILE, 'r', encoding='utf-8') as f: return json.load(f)
+    except: return {}
 
 def save_state(state):
-    """保存定时任务状态"""
     try:
-        with open(STATE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error saving schedule state: {e}")
+        with open(STATE_FILE, 'w', encoding='utf-8') as f: json.dump(state, f, ensure_ascii=False, indent=2)
+    except Exception as e: print(f"Error saving state: {e}")
 
 def update_msmtp_config(email_config):
-    """动态更新 msmtp 配置文件"""
     conf = f"""defaults
 auth           on
 tls            on
@@ -72,7 +61,6 @@ password       {email_config.get('msmtp_pass', '')}
 
 # --- 推送服务 ---
 async def send_email(email_config, subject, body, attachment=None, filename=None):
-    """发送邮件"""
     update_msmtp_config(email_config)
     msg = MIMEMultipart()
     msg['From'] = email_config.get('msmtp_from')
@@ -95,146 +83,120 @@ async def send_email(email_config, subject, body, attachment=None, filename=None
         stderr=asyncio.subprocess.PIPE
     )
     stdout, stderr = await proc.communicate(input=raw_bytes)
-    
-    if proc.returncode != 0:
-        print(f"msmtp error: {stderr.decode()}")
-    else:
-        print("Email sent successfully.")
+    if proc.returncode != 0: print(f"msmtp error: {stderr.decode()}")
+    else: print("Email sent successfully.")
 
 async def send_bark(server_url, token, title, content):
-    """发送 Bark 推送"""
     base_url = server_url.rstrip('/')
     url = f"{base_url}/{token}/{title}/{content}"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             if response.status != 200:
-                print(f"Failed to send Bark notification to {base_url}. Status: {response.status}, Response: {await response.text()}")
+                print(f"Failed to send Bark. Status: {response.status}")
             else:
-                print(f"Bark notification sent successfully via {base_url}.")
+                print(f"Bark sent via {base_url}.")
 
 async def send_pushplus(token, title, content):
-    """发送 Pushplus 推送"""
     url = "https://www.pushplus.plus/send"
     payload = {"token": token, "title": title, "content": content}
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=payload) as response:
             if response.status != 200:
-                print(f"Failed to send Pushplus notification. Status: {response.status}, Response: {await response.text()}")
+                print(f"Failed to send Pushplus. Status: {response.status}")
             else:
-                print("Pushplus notification sent successfully.")
+                print("Pushplus sent.")
 
 # --- 辅助函数 ---
 def get_bark_details(config, bark_id):
-    """根据 Bark ID，从配置中获取对应的 token 和 server_url"""
     notifiers_config = config.get('notifiers', {})
     if 'bark' in notifiers_config:
-        for bark_notifier in notifiers_config['bark']:
-            if bark_notifier.get('id') == bark_id:
-                return {
-                    "token": bark_notifier.get('token'),
-                    "server_url": bark_notifier.get('server_url')
-                }
+        for n in notifiers_config['bark']:
+            if n.get('id') == bark_id:
+                return {"token": n.get('token'), "server_url": n.get('server_url')}
     return None
 
 def get_pushplus_token(config, pushplus_id):
-    """根据 Pushplus ID，从配置中获取对应的 token"""
     notifiers_config = config.get('notifiers', {})
     if 'pushplus' in notifiers_config:
-        for pushplus_notifier in notifiers_config['pushplus']:
-            if pushplus_notifier.get('id') == pushplus_id:
-                return pushplus_notifier.get('token')
+        for n in notifiers_config['pushplus']:
+            if n.get('id') == pushplus_id:
+                return n.get('token')
     return None
 
-# --- 延迟回复功能 (新增) ---
-async def send_delayed_reply(client, chat_id, message):
-    """延迟 5 秒后发送回复消息"""
-    await asyncio.sleep(5)
+# --- ★★★ 核心修改：支持自定义延迟 ★★★ ---
+async def send_delayed_reply(client, chat_id, message, delay=5):
+    """延迟指定秒数后发送回复消息"""
+    if delay > 0:
+        await asyncio.sleep(delay)
     try:
         await client.send_message(chat_id, message)
-        print(f"[Auto-Reply] Sent reply to {chat_id}: {message}")
+        print(f"[Auto-Reply] Sent reply to {chat_id} after {delay}s: {message}")
     except Exception as e:
-        print(f"[Auto-Reply] Failed to send reply to {chat_id}: {e}")
+        print(f"[Auto-Reply] Failed to send reply: {e}")
 
-# --- 核心消息处理逻辑 ---
 async def process_notifications(config, notifiers_list, subject, body):
-    """处理并发送一组通知，包含错误捕获逻辑。"""
     for nid in notifiers_list:
         try:
             if nid.startswith('bark'):
-                bark_details = get_bark_details(config, nid)
-                if bark_details and bark_details.get('token'):
-                    server_url = bark_details.get('server_url') or "https://api.day.app"
-                    await send_bark(server_url, bark_details['token'], subject, body)
-
+                details = get_bark_details(config, nid)
+                if details and details.get('token'):
+                    url = details.get('server_url') or "https://api.day.app"
+                    await send_bark(url, details['token'], subject, body)
             elif nid.startswith('pp'):
                 token = get_pushplus_token(config, nid)
-                if token:
-                    await send_pushplus(token, subject, body)
-                    
+                if token: await send_pushplus(token, subject, body)
             elif nid == "email":
                 if 'email' in config.get('notifiers', {}):
                     await send_email(config['notifiers']['email'], subject, body)
         except Exception as e:
-            print(f"[ERROR] Failed to process notifier '{nid}'. Reason: {e}")
+            print(f"[ERROR] Notifier '{nid}' failed: {e}")
 
 async def handle_message(event):
-    """处理新消息事件"""
     config = load_config()
-    if not config:
-        return
+    if not config: return
 
     chat_id = str(event.chat_id)
     group = next((g for g in config.get('groups', []) if g.get('id') == chat_id), None)
-    
-    if not group:
-        return
+    if not group: return
 
     message_text = event.message.text or ""
     sender = await event.message.get_sender()
-    sender_info = f"{sender.first_name or ''} {sender.last_name or ''} (@{getattr(sender, 'username', 'N/A')})" if sender else "Unknown Sender"
+    sender_info = f"{sender.first_name or ''} {sender.last_name or ''} (@{getattr(sender, 'username', 'N/A')})" if sender else "Unknown"
     
-    group_name = group.get('name', 'Unknown Group')
+    group_name = group.get('name', 'Unknown')
     subject = f"【Telegram】来自 {group_name} 的新消息"
     body = f"发信人: {sender_info}\n\n{message_text}"
 
     notifiers_to_trigger = set()
     keyword_matched = False
+    client = event.client
 
-    client = event.client # 获取 client 实例用于回复
-
-    # 检查关键字规则
-    for keyword_rule in group.get('keywords', []):
-        if keyword_rule.get('word') and keyword_rule.get('word') in message_text:
-            # 1. 触发通知
-            notifiers_to_trigger.update(keyword_rule.get('notifiers', []))
+    for rule in group.get('keywords', []):
+        if rule.get('word') and rule.get('word') in message_text:
+            notifiers_to_trigger.update(rule.get('notifiers', []))
             keyword_matched = True
             
-            # 2. 检查是否有自动回复配置 (新增逻辑)
-            reply_content = keyword_rule.get('reply_content')
+            # --- 自动回复逻辑 ---
+            reply_content = rule.get('reply_content')
             if reply_content:
-                print(f"Keyword matched '{keyword_rule.get('word')}'. Scheduling delayed reply...")
-                # 创建后台任务，不阻塞主流程
-                asyncio.create_task(send_delayed_reply(client, event.chat_id, reply_content))
+                # 获取配置的延迟时间，默认5秒
+                try:
+                    delay = float(rule.get('reply_delay', 5))
+                except (ValueError, TypeError):
+                    delay = 5
+                    
+                print(f"Keyword '{rule.get('word')}' matched. Reply in {delay}s.")
+                asyncio.create_task(send_delayed_reply(client, event.chat_id, reply_content, delay))
 
-    # 如果没有关键字匹配，则使用默认推送规则
     if not keyword_matched:
         notifiers_to_trigger.update(group.get('default_notifiers', []))
 
-    # 发送通知
     if notifiers_to_trigger:
-        print(f"Message from '{group_name}' triggered notifiers: {list(notifiers_to_trigger)}")
+        print(f"Triggering notifiers: {list(notifiers_to_trigger)}")
         await process_notifications(config, list(notifiers_to_trigger), subject, body)
-    else:
-        print(f"Message from '{group_name}' did not trigger any notifiers.")
 
-# --- 定时任务处理逻辑 (随机时间版) ---
 async def scheduled_task_worker(client):
-    """
-    后台任务：每分钟检查定时任务。
-    支持在设定的 [Start, End] 时间段内随机触发。
-    """
-    print("Scheduled task worker started (Randomized Mode).")
-    
+    print("Scheduled task worker started.")
     daily_random_targets = {}
     last_check_minute = None
 
@@ -249,126 +211,84 @@ async def scheduled_task_worker(client):
                 continue
                 
             config = load_config()
-            state = load_state() 
+            state = load_state()
             
             if config:
                 tasks = config.get('scheduled_tasks', [])
                 for idx, task in enumerate(tasks):
-                    if not task.get('enabled', True):
-                        continue
+                    if not task.get('enabled', True): continue
 
                     target = task.get('target')
                     msg = task.get('message')
-                    
-                    # 构造任务唯一签名
                     task_sig = f"{target}_{msg}_{task.get('time_start')}_{task.get('time_end')}_{idx}"
                     
-                    # 检查今天是否已经运行过
-                    if state.get(task_sig) == today_str:
-                        continue
+                    if state.get(task_sig) == today_str: continue
 
-                    # 解析时间段
-                    t_start_str = task.get('time_start') or task.get('time') or "08:00"
-                    t_end_str = task.get('time_end') or task.get('time') or "08:00"
+                    t_start = task.get('time_start') or task.get('time') or "08:00"
+                    t_end = task.get('time_end') or task.get('time') or "08:00"
                     
                     try:
-                        h_s, m_s = map(int, t_start_str.split(':'))
-                        h_e, m_e = map(int, t_end_str.split(':'))
+                        h_s, m_s = map(int, t_start.split(':'))
+                        h_e, m_e = map(int, t_end.split(':'))
                         dt_start = now.replace(hour=h_s, minute=m_s, second=0, microsecond=0)
                         dt_end = now.replace(hour=h_e, minute=m_e, second=0, microsecond=0)
                         
-                        if dt_end < dt_start: continue
-                        if now < dt_start: continue
-                        if now > dt_end: continue
+                        if dt_end < dt_start or now < dt_start or now > dt_end: continue
                         
                         target_key = f"{task_sig}_{today_str}"
                         if target_key not in daily_random_targets:
-                            time_min_ts = max(now.timestamp(), dt_start.timestamp())
-                            time_max_ts = dt_end.timestamp()
-                            
-                            if time_max_ts > time_min_ts:
-                                random_ts = random.uniform(time_min_ts, time_max_ts)
-                                random_dt = datetime.fromtimestamp(random_ts)
+                            ts_min = max(now.timestamp(), dt_start.timestamp())
+                            ts_max = dt_end.timestamp()
+                            if ts_max > ts_min:
+                                rand_dt = datetime.fromtimestamp(random.uniform(ts_min, ts_max))
                             else:
-                                random_dt = now
-                            
-                            daily_random_targets[target_key] = random_dt
-                            print(f"[Schedule] Task {idx} target set to {random_dt.strftime('%H:%M:%S')} (Range: {t_start_str}-{t_end_str})")
+                                rand_dt = now
+                            daily_random_targets[target_key] = rand_dt
+                            print(f"[Schedule] Task {idx} set for {rand_dt.strftime('%H:%M:%S')}")
                         
                         target_dt = daily_random_targets[target_key]
                         
                         if now >= target_dt:
-                            try:
-                                entity = int(target) if target.lstrip('-').isdigit() else target
-                                await client.send_message(entity, msg)
-                                print(f"[Schedule] Executed task {idx}: Sent '{msg}' to {target}")
+                            entity = int(target) if target.lstrip('-').isdigit() else target
+                            await client.send_message(entity, msg)
+                            print(f"[Schedule] Sent '{msg}' to {target}")
+                            state[task_sig] = today_str
+                            save_state(state)
+                            if target_key in daily_random_targets: del daily_random_targets[target_key]
                                 
-                                state[task_sig] = today_str
-                                save_state(state)
-                                
-                                if target_key in daily_random_targets:
-                                    del daily_random_targets[target_key]
-                                    
-                            except Exception as e:
-                                print(f"[Schedule] Failed to send to {target}: {e}")
-                                
-                    except ValueError:
-                        print(f"[Schedule] Invalid time format for task {idx}")
-                        continue
+                    except Exception as e:
+                        print(f"[Schedule] Error task {idx}: {e}")
 
             last_check_minute = current_minute_str
-            seconds_to_sleep = 60 - datetime.now().second
-            await asyncio.sleep(seconds_to_sleep)
+            await asyncio.sleep(60 - datetime.now().second)
             
         except Exception as e:
-            print(f"Error in scheduled worker: {e}")
+            print(f"Worker error: {e}")
             await asyncio.sleep(60)
 
-# --- 主程序入口 ---
 async def main():
-    """主函数，初始化并运行客户端"""
-    print("Starting Telegram client...")
-    
+    print("Starting client...")
     api_id = os.getenv('API_ID')
     api_hash = os.getenv('API_HASH')
+    if not api_id or not api_hash: return print("Missing API_ID/HASH")
 
-    if not api_id or not api_hash:
-        print("Error: API_ID and API_HASH environment variables must be set.")
-        return
-
-    try:
-        api_id = int(api_id)
-    except ValueError:
-        print("Error: API_ID must be an integer.")
-        return
-
-    client = TelegramClient(SESSION_NAME, api_id, api_hash)
+    client = TelegramClient(SESSION_NAME, int(api_id), api_hash)
     
-    # 注册消息监听器
     @client.on(events.NewMessage)
     async def event_handler(event):
         await handle_message(event)
 
     try:
         await client.start()
-        print("Telegram client started successfully.")
-        
-        # 启动定时任务后台协程
+        print("Client started.")
         client.loop.create_task(scheduled_task_worker(client))
-        
         await client.run_until_disconnected()
     except Exception as e:
-        print(f"An error occurred while running the client: {e}")
+        print(f"Client error: {e}")
     finally:
-        if client.is_connected():
-            await client.disconnect()
-        print("Telegram client disconnected.")
+        if client.is_connected(): await client.disconnect()
 
 if __name__ == '__main__':
-    if not os.path.exists(SESSION_DIR):
-        os.makedirs(SESSION_DIR)
-        
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Program interrupted by user. Exiting.")
+    if not os.path.exists(SESSION_DIR): os.makedirs(SESSION_DIR)
+    try: asyncio.run(main())
+    except KeyboardInterrupt: pass
