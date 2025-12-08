@@ -325,7 +325,8 @@ function createNotifierCheckboxes(containerId, selectedValues = [], onchangeCall
             <span class="switch-text">${opt.name}</span>
         </label>`;
     }).join('');
-    return `<div class="switch-grid">${html}</div>`;
+    // ★★★ 修复关键点：加上了 id="${containerId}"，确保 document.querySelectorAll 能找到元素 ★★★
+    return `<div id="${containerId}" class="switch-grid">${html}</div>`;
 }
 
 // ★★★ 核心修改：关键字行增加延迟时间输入 ★★★
