@@ -268,11 +268,15 @@ function renderNotifierModal(){
   document.getElementById('pushTokenList').innerHTML = (n.pushplus || []).map((t, i) => renderTokenRow(t, i, 'pushplus')).join('');
 }
 
+// ★★★ 核心修复：使用时间戳生成唯一ID，解决删除后再添加导致的ID重复问题 ★★★
 function addGlobalToken(type){
   if (!configData.notifiers[type]) configData.notifiers[type] = [];
-  configData.notifiers[type].push({id: `${type}${configData.notifiers[type].length + 1}`, token: '', server_url: ''});
+  // 以前是 length + 1，删除后会重复。现在用时间戳，绝对唯一。
+  let nextId = `${type}_${new Date().getTime()}`; 
+  configData.notifiers[type].push({id: nextId, token: '', server_url: ''});
   renderNotifierModal();
 }
+
 function removeGlobalToken(type, idx){ configData.notifiers[type].splice(idx, 1); renderNotifierModal(); }
 function updateGlobalToken(type, idx, key, value){ configData.notifiers[type][idx][key] = value; }
 
@@ -325,11 +329,9 @@ function createNotifierCheckboxes(containerId, selectedValues = [], onchangeCall
             <span class="switch-text">${opt.name}</span>
         </label>`;
     }).join('');
-    // ★★★ 修复关键点：加上了 id="${containerId}"，确保 document.querySelectorAll 能找到元素 ★★★
     return `<div id="${containerId}" class="switch-grid">${html}</div>`;
 }
 
-// ★★★ 核心修改：关键字行增加延迟时间输入 ★★★
 function createKeywordRow(groupIdx, kidx, kwObj){
   return `<div class="list-card">
     <div style="display:flex; gap:0.5rem; margin-bottom:0.8rem;">
@@ -358,7 +360,6 @@ async function updateGroupNotifier(gId) { configData.groups[gId].default_notifie
 async function updateKeywordNotifier(gId, kId) { configData.groups[gId].keywords[kId].notifiers = Array.from(document.querySelectorAll(`#group-${gId}-kw-${kId} input:checked`)).map(el => el.value); await saveConfigToServer(); }
 async function updateKeywordWord(gId, kId, val){ configData.groups[gId].keywords[kId].word = val.trim(); await saveConfigToServer(); }
 async function updateKeywordReply(gId, kId, val){ configData.groups[gId].keywords[kId].reply_content = val; await saveConfigToServer(); }
-// ★★★ 新增：更新延迟时间 ★★★
 async function updateKeywordDelay(gId, kId, val){ configData.groups[gId].keywords[kId].reply_delay = val; await saveConfigToServer(); }
 
 async function addKeywordToGroup(gId){ if(!configData.groups[gId].keywords) configData.groups[gId].keywords=[]; configData.groups[gId].keywords.push({word:'', notifiers:[], reply_content:'', reply_delay: 5}); if(await saveConfigToServer()) renderGroups(gId); }
@@ -409,7 +410,6 @@ function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[], reply_co
 function removeKeywordRow(idx){ addGroupKeywords.splice(idx, 1); renderKeywordRows(addGroupKeywords); }
 function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val.trim(); }
 function updateNewKeywordReply(idx, val){ addGroupKeywords[idx].reply_content = val; }
-// ★★★ 新增：弹窗中更新延迟时间 ★★★
 function updateNewKeywordDelay(idx, val){ addGroupKeywords[idx].reply_delay = val; }
 
 /* --- 提交 --- */
