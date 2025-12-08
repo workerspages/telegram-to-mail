@@ -90,10 +90,14 @@ body {
 /* --- 输入框 (Input) --- */
 .form-group { margin-bottom: 1.25rem; }
 .form-group label { display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.85rem; color: #374151; }
-input[type="text"], input[type="password"], input[type="time"] {
+
+/* ★★★ 核心修复：增加了 input[type="number"] 以修复延迟输入框样式 ★★★ */
+input[type="text"], input[type="password"], input[type="time"], input[type="number"] {
   display: block; width: 100%; height: 42px; padding: 0 1rem;
   font-size: 0.95rem; color: var(--text-main); background: var(--bg-input);
   border: 1px solid transparent; border-radius: 10px; transition: all 0.2s;
+  /* 移除 iOS 默认样式 */
+  -webkit-appearance: none; appearance: none;
 }
 input[type="text"]:hover, input:hover { background: #fff; border-color: #d1d5db; }
 input:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
@@ -184,7 +188,6 @@ input:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 
 /* --- 登录页面专属样式 (Login) --- */
 .login-body {
   background-color: #f3f4f6;
-  /* 增加微妙的背景渐变网格，提升高级感 */
   background-image: 
     radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0px, transparent 50%), 
     radial-gradient(at 100% 100%, rgba(124, 58, 237, 0.1) 0px, transparent 50%);
@@ -197,7 +200,6 @@ input:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 
   border: 1px solid rgba(255,255,255,0.8);
   position: relative; overflow: hidden;
 }
-/* 登录页顶部的装饰条 */
 .login-container::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
   background: linear-gradient(to right, #3b82f6, #7c3aed);
