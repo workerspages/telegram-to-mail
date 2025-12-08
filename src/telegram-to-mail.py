@@ -170,7 +170,8 @@ async def process_notifications(config, notifiers_list, subject, body):
                     server_url = bark_details.get('server_url') or "https://api.day.app"
                     await send_bark(server_url, bark_details['token'], subject, body)
 
-            elif nid.startswith('pp'):
+            # ★★★ 修复点：此前写的是 'pp'，但前端生成的ID是 'pushplus' 开头 ★★★
+            elif nid.startswith('pushplus'):
                 token = get_pushplus_token(config, nid)
                 if token:
                     await send_pushplus(token, subject, body)
