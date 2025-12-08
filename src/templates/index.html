@@ -154,11 +154,31 @@ function toggleGroup(idx) {
     document.getElementById(`group-card-${idx}`)?.classList.toggle('expanded');
 }
 
+// ★★★ 核心修改：智能格式化显示名称 ★★★
+function formatNotifierName(id) {
+    if (!id) return '';
+    // 如果是类似 bark_17156... 格式的 ID
+    if (id.includes('_')) {
+        const parts = id.split('_');
+        const type = parts[0]; // bark 或 pushplus
+        const ts = parts[1];   // 时间戳
+        // 首字母大写 + 后4位时间戳 (例如: Bark ..6261)
+        const typeName = type.charAt(0).toUpperCase() + type.slice(1);
+        if (ts && ts.length > 4) {
+            return `${typeName} ..${ts.slice(-4)}`;
+        }
+    }
+    return id; // 其他情况原样显示
+}
+
 function getAvailableNotifiers() {
     let options = [{ id: 'email', name: 'Email' }];
-    // ★★★ 修复：仅显示 ID，不显示冗余的类型名称，配合 CSS 截断，解决溢出问题 ★★★
-    if (configData.notifiers.bark) configData.notifiers.bark.forEach(n => options.push({ id: n.id, name: n.id }));
-    if (configData.notifiers.pushplus) configData.notifiers.pushplus.forEach(n => options.push({ id: n.id, name: n.id }));
+    if (configData.notifiers.bark) {
+        configData.notifiers.bark.forEach(n => options.push({ id: n.id, name: formatNotifierName(n.id) }));
+    }
+    if (configData.notifiers.pushplus) {
+        configData.notifiers.pushplus.forEach(n => options.push({ id: n.id, name: formatNotifierName(n.id) }));
+    }
     return options;
 }
 
@@ -260,7 +280,7 @@ function renderNotifierModal(){
             <input type="text" value="${t.token}" placeholder="Token / Key" onchange="updateGlobalToken('${type}', ${idx}, 'token', this.value)" style="height:36px;">
         </div>
         <div style="display:flex; flex-direction:column; align-items:center; gap:0.2rem;">
-             <span class="id-badge">${t.id}</span>
+             <span class="id-badge" style="font-size:0.7rem; color:#999;">${formatNotifierName(t.id)}</span>
              <button type="button" class="btn-icon btn-icon-danger" onclick="removeGlobalToken('${type}', ${idx})"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
     </div>`;
