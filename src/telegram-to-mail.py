@@ -315,8 +315,20 @@ async def scraper_task_worker():
                     # 每个频道之间随机休息几秒
                     await asyncio.sleep(random.uniform(2, 5))
             
-            # 所有频道轮询一圈后，等待较长时间
-            await asyncio.sleep(60)
+            # --- ★★★ 修改处：动态读取轮询频率 ★★★ ---
+            # 默认 60 秒
+            interval = 60
+            if config:
+                try:
+                    # 读取配置，最低限制 10 秒以防封禁
+                    interval = int(config.get('scraper_interval', 60))
+                    if interval < 10:
+                        interval = 10
+                except (ValueError, TypeError):
+                    interval = 60
+            
+            # 等待下一轮
+            await asyncio.sleep(interval)
 
         except Exception as e:
             print(f"Error in scraper worker: {e}")
@@ -421,13 +433,11 @@ async def main():
     api_hash = os.getenv('API_HASH')
     
     # 检查是否存在 Session 文件
-    # 如果是 Zeabur 首次部署，通常没有此文件，且无法进行控制台交互输入手机号
     session_exists = os.path.exists(SESSION_NAME)
 
     # 情况 A: 环境变量缺失
     if not api_id or not api_hash:
         print("Warning: API_ID/HASH not set. Telegram Client mode disabled. Only Web Scraper will work.")
-        # 保持进程存活以运行爬虫
         while True:
             await asyncio.sleep(3600)
         return
@@ -436,11 +446,10 @@ async def main():
     if not session_exists:
         print("----------------------------------------------------------------")
         print(f"Notice: Session file not found at {SESSION_NAME}")
-        print("Interactive login is not supported in this environment (EOF error prevention).")
+        print("Interactive login is not supported in this environment.")
         print(">> The Telegram Client (Listen/Forward/Schedule) will be SKIPPED.")
         print(">> The Web Scraper (Anonymous Subscription) is RUNNING.")
         print("----------------------------------------------------------------")
-        # 保持进程存活以运行爬虫
         while True:
             await asyncio.sleep(3600)
         return
