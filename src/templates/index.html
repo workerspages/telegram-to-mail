@@ -156,6 +156,16 @@
            完全匿名，无封号风险，适合公开频道的广播监控。
          </p>
       </div>
+      
+      <!-- ★★★ 新增：频率设置框 ★★★ -->
+      <div style="background: #fff; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+        <div>
+            <label style="display:block; font-weight:600; font-size:0.9rem; margin-bottom:0.2rem;">轮询频率</label>
+            <span style="font-size:0.8rem; color:var(--text-secondary);">两次检查之间的等待时间 (秒)</span>
+        </div>
+        <input type="number" id="scraperIntervalInput" min="10" step="10" style="width:80px; text-align:center; font-weight:600; height:36px;" onchange="updateScraperInterval(this.value)">
+      </div>
+
       <div id="scraperList"></div>
       <button type="button" class="btn btn-secondary" onclick="addScraperItem()" style="width: 100%; border-style:dashed; margin-top:1rem;">+ 添加订阅频道</button>
     </div>
@@ -173,7 +183,7 @@ let configData = {{ config|tojson|safe }};
 
 // 初始化数据结构
 if (!configData.scheduled_tasks) configData.scheduled_tasks = [];
-if (!configData.scrape_channels) configData.scrape_channels = []; // 确保爬虫数组存在
+if (!configData.scrape_channels) configData.scrape_channels = []; 
 const pushTypes = { bark: "Bark", pushplus: "Pushplus", email: "Email" };
 
 /* --- API 通信 --- */
@@ -244,6 +254,9 @@ function closeScheduleModal(){ document.getElementById('scheduleModalMask').clas
 
 function openScraperModal() {
     renderScraperList();
+    // ★★★ 初始化频率输入框的值 ★★★
+    document.getElementById('scraperIntervalInput').value = configData.scraper_interval || 60;
+    
     document.getElementById('scraperModalMask').classList.add('active');
     document.getElementById('scraperStatus').textContent = "";
 }
@@ -317,6 +330,16 @@ async function updateScraperNotifier(idx) {
     showScraperStatus("保存中...");
     if (await saveConfigToServer()) showScraperStatus("已保存", "var(--success)");
 }
+
+// ★★★ 新增：保存频率设置 ★★★
+async function updateScraperInterval(val) {
+    let v = parseInt(val);
+    if(isNaN(v) || v < 10) v = 10;
+    configData.scraper_interval = v;
+    showScraperStatus("保存频率...");
+    if(await saveConfigToServer()) showScraperStatus("频率已保存", "var(--success)");
+}
+
 function showScraperStatus(msg, color="#9ca3af") {
     const s = document.getElementById('scraperStatus');
     s.textContent = msg; s.style.color = color;
@@ -499,52 +522,6 @@ async function updateKeywordDelay(gId, kId, val){ configData.groups[gId].keyword
 async function addKeywordToGroup(gId){ if(!configData.groups[gId].keywords) configData.groups[gId].keywords=[]; configData.groups[gId].keywords.push({word:'', notifiers:[], reply_content:'', reply_delay: 5}); if(await saveConfigToServer()) renderGroups(gId); }
 async function removeKeyword(gId, kId){ configData.groups[gId].keywords.splice(kId,1); if(await saveConfigToServer()) renderGroups(gId); }
 async function deleteGroup(e, idx) { e.stopPropagation(); if(confirm('删除此群组？')) { configData.groups.splice(idx, 1); if(await saveConfigToServer()) renderGroups(); } }
-
-/* --- 模态框逻辑：添加群组 (Add Group) --- */
-function renderModalDefaultNotify(selectedValues){
-  document.getElementById('modalDefaultNotifyContainer').innerHTML = getAvailableNotifiers().map(opt => 
-    `<label class="switch-label ${selectedValues.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)" title="${opt.name}">
-        <input type="checkbox" value="${opt.id}" ${selectedValues.includes(opt.id)?'checked':''}>
-        <div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span>
-    </label>`).join('');
-}
-let addGroupKeywords = [];
-function renderKeywordRows(kws){
-  addGroupKeywords = kws;
-  document.getElementById('addGroupKeywords').innerHTML = kws.length === 0 ? '<div style="text-align:center; color:var(--text-secondary); font-size:0.8rem; padding:1rem; border:1px dashed var(--border); border-radius:10px;">暂无规则</div>' :
-  kws.map((kw, idx) => `
-    <div class="list-card" style="margin-bottom:0.5rem; padding:0.8rem;">
-      <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
-        <input type="text" value="${kw.word||''}" onchange="updateNewKeywordWord(${idx}, this.value)" placeholder="关键字">
-        <button type="button" class="btn-icon btn-icon-danger" onclick="removeKeywordRow(${idx})" style="border:1px solid var(--border); border-radius:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-      </div>
-      
-      <div style="margin-bottom:0.8rem;">
-          <div class="switch-grid" id="modal-kw-${idx}">${getAvailableNotifiers().map(opt => 
-              `<label class="switch-label ${kw.notifiers.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)" title="${opt.name}">
-                <input type="checkbox" value="${opt.id}" ${kw.notifiers.includes(opt.id)?'checked':''}>
-                <div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span>
-               </label>`).join('')}
-          </div>
-      </div>
-      
-      <div style="display: flex; gap: 0.8rem; align-items: flex-end;">
-         <div style="flex-grow: 1;">
-            <label style="font-size:0.75rem; color:var(--text-secondary);">自动回复</label>
-            <input type="text" value="${kw.reply_content||''}" onchange="updateNewKeywordReply(${idx}, this.value)" placeholder="回复内容..." style="font-size:0.85rem; height:36px;">
-         </div>
-         <div style="width: 80px;">
-            <label style="font-size:0.75rem; color:var(--text-secondary);">延迟(秒)</label>
-            <input type="number" min="0" value="${kw.reply_delay||5}" onchange="updateNewKeywordDelay(${idx}, this.value)" style="font-size:0.85rem; height:36px; text-align:center;">
-         </div>
-      </div>
-    </div>`).join('');
-}
-function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[], reply_content:'', reply_delay: 5}); renderKeywordRows(addGroupKeywords); }
-function removeKeywordRow(idx){ addGroupKeywords.splice(idx, 1); renderKeywordRows(addGroupKeywords); }
-function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val.trim(); }
-function updateNewKeywordReply(idx, val){ addGroupKeywords[idx].reply_content = val; }
-function updateNewKeywordDelay(idx, val){ addGroupKeywords[idx].reply_delay = val; }
 
 /* --- 提交事件绑定 --- */
 document.getElementById('addGroupForm').onsubmit = async function(e){
