@@ -299,7 +299,13 @@ async def scraper_task_worker():
                                             
                                             # 触发通知
                                             notifiers = channel.get('notifiers', [])
-                                            subject = f"【TG订阅】@{username} 更新"
+                                            
+                                            # 使用自定义名称或默认用户名
+                                            display_name = channel.get('name')
+                                            if not display_name:
+                                                display_name = f"@{username}"
+                                                
+                                            subject = f"【TG订阅】{display_name} 更新"
                                             body = f"{latest_text}\n\n(来源: Web Preview)"
                                             
                                             await process_notifications(config, notifiers, subject, body)
@@ -315,19 +321,16 @@ async def scraper_task_worker():
                     # 每个频道之间随机休息几秒
                     await asyncio.sleep(random.uniform(2, 5))
             
-            # --- ★★★ 修改处：动态读取轮询频率 ★★★ ---
-            # 默认 60 秒
+            # 动态读取轮询频率
             interval = 60
             if config:
                 try:
-                    # 读取配置，最低限制 10 秒以防封禁
                     interval = int(config.get('scraper_interval', 60))
                     if interval < 10:
                         interval = 10
                 except (ValueError, TypeError):
                     interval = 60
             
-            # 等待下一轮
             await asyncio.sleep(interval)
 
         except Exception as e:
