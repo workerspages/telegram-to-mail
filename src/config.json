@@ -11,5 +11,6 @@
     "pushplus": []
   },
   "groups": [],
-  "scheduled_tasks": []
+  "scheduled_tasks": [],
+  "scrape_channels": []
 }
