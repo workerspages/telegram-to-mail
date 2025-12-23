@@ -10,14 +10,13 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-from bs4 import BeautifulSoup  # 新增：用于解析 HTML
+from bs4 import BeautifulSoup
 
 # 定义常量
 CONFIG_FILE = 'config.json'
 SESSION_DIR = './session_data'
 SESSION_NAME = os.path.join(SESSION_DIR, 'telegram.session')
 STATE_FILE = os.path.join(SESSION_DIR, 'schedule_state.json')
-# 新增：用于记录爬虫已抓取内容的缓存文件
 SCRAPER_STATE_FILE = os.path.join(SESSION_DIR, 'scraper_state.json')
 
 # --- 配置加载与管理 ---
@@ -51,8 +50,8 @@ def save_state(state):
     except Exception as e:
         print(f"Error saving schedule state: {e}")
 
-# --- 新增：爬虫状态管理 ---
 def load_scraper_state():
+    """加载爬虫状态"""
     if not os.path.exists(SCRAPER_STATE_FILE):
         return {}
     try:
@@ -62,6 +61,7 @@ def load_scraper_state():
         return {}
 
 def save_scraper_state(state):
+    """保存爬虫状态"""
     try:
         with open(SCRAPER_STATE_FILE, 'w', encoding='utf-8') as f:
             json.dump(state, f, ensure_ascii=False, indent=2)
@@ -242,7 +242,7 @@ async def handle_message(event):
         print(f"Message from '{group_name}' triggered notifiers: {list(notifiers_to_trigger)}")
         await process_notifications(config, list(notifiers_to_trigger), subject, body)
 
-# --- ★★★ 新增：网页爬虫工作线程 ★★★ ---
+# --- 网页爬虫工作线程 (无登录模式) ---
 async def scraper_task_worker():
     """
     独立线程：每隔一段时间去访问 t.me/s/xxx 页面，解析最新消息。
@@ -258,9 +258,6 @@ async def scraper_task_worker():
         try:
             config = load_config()
             scraper_state = load_scraper_state()
-            
-            # 安全延时，避免被 TG 屏蔽 IP。建议 30-60秒一次循环。
-            # 如果频道很多，这会是串行请求。
             
             if config:
                 channels = config.get('scrape_channels', [])
@@ -288,10 +285,8 @@ async def scraper_task_worker():
                                         # 提取纯文本
                                         latest_text = latest_msg_html.get_text(separator='\n').strip()
                                         
-                                        # 简单的去重机制：计算 hash 或者直接存前50个字符+时间戳
-                                        # 这里直接存内容哈希
+                                        # 简单的去重机制：计算 hash
                                         msg_hash = hashlib.md5(latest_text.encode('utf-8')).hexdigest()
-                                        
                                         last_hash = scraper_state.get(username)
                                         
                                         if msg_hash != last_hash:
@@ -308,28 +303,26 @@ async def scraper_task_worker():
                                             body = f"{latest_text}\n\n(来源: Web Preview)"
                                             
                                             await process_notifications(config, notifiers, subject, body)
-                                        else:
-                                            pass # 无新消息
                                     else:
-                                        pass # 页面解析不到消息（可能是空频道或结构变了）
+                                        # 页面解析不到消息（可能是空频道或结构变了）
+                                        pass
                                 else:
                                     print(f"[Scraper] Failed to fetch {url}, status: {resp.status}")
 
                     except Exception as e:
                         print(f"[Scraper] Error scraping {username}: {e}")
                     
-                    # 每个频道之间随机休息几秒，模拟真人浏览
+                    # 每个频道之间随机休息几秒
                     await asyncio.sleep(random.uniform(2, 5))
             
-            # 所有频道轮询一圈后，等待较长时间（例如 60秒）
+            # 所有频道轮询一圈后，等待较长时间
             await asyncio.sleep(60)
 
         except Exception as e:
             print(f"Error in scraper worker: {e}")
             await asyncio.sleep(60)
 
-
-# --- 定时任务处理逻辑 ---
+# --- 定时任务处理逻辑 (依赖客户端) ---
 async def scheduled_task_worker(client):
     """
     后台任务：每分钟检查定时任务。
@@ -421,20 +414,38 @@ async def main():
     """主函数"""
     print("Starting services...")
     
-    # 无论 TG 客户端是否连接，爬虫服务都可以独立运行
-    # 启动爬虫任务
+    # 1. 始终启动网页爬虫任务 (独立于 TG 客户端)
     asyncio.create_task(scraper_task_worker())
 
     api_id = os.getenv('API_ID')
     api_hash = os.getenv('API_HASH')
+    
+    # 检查是否存在 Session 文件
+    # 如果是 Zeabur 首次部署，通常没有此文件，且无法进行控制台交互输入手机号
+    session_exists = os.path.exists(SESSION_NAME)
 
+    # 情况 A: 环境变量缺失
     if not api_id or not api_hash:
-        print("Warning: API_ID/HASH not set. Telegram Client (Login) mode disabled. Only Web Scraper will work.")
-        # 如果没有 API ID，仅运行爬虫，不运行客户端
+        print("Warning: API_ID/HASH not set. Telegram Client mode disabled. Only Web Scraper will work.")
+        # 保持进程存活以运行爬虫
         while True:
             await asyncio.sleep(3600)
         return
 
+    # 情况 B: 有 API 配置，但没有 Session 文件 (无法交互登录)
+    if not session_exists:
+        print("----------------------------------------------------------------")
+        print(f"Notice: Session file not found at {SESSION_NAME}")
+        print("Interactive login is not supported in this environment (EOF error prevention).")
+        print(">> The Telegram Client (Listen/Forward/Schedule) will be SKIPPED.")
+        print(">> The Web Scraper (Anonymous Subscription) is RUNNING.")
+        print("----------------------------------------------------------------")
+        # 保持进程存活以运行爬虫
+        while True:
+            await asyncio.sleep(3600)
+        return
+
+    # 情况 C: 有 Session 文件，正常启动客户端
     try:
         api_id = int(api_id)
         client = TelegramClient(SESSION_NAME, api_id, api_hash)
@@ -443,6 +454,7 @@ async def main():
         async def event_handler(event):
             await handle_message(event)
 
+        print("Attempting to connect Telegram client...")
         await client.start()
         print("Telegram client started successfully.")
         
@@ -450,17 +462,20 @@ async def main():
         client.loop.create_task(scheduled_task_worker(client))
         
         await client.run_until_disconnected()
+
     except Exception as e:
         print(f"Telegram client error: {e}")
+        print("Client crashed or failed to start. Keeping process alive for Web Scraper...")
         # 如果客户端崩溃，保持主进程存活以运行爬虫
         while True:
             await asyncio.sleep(60)
 
 if __name__ == '__main__':
+    # 确保持久化目录存在
     if not os.path.exists(SESSION_DIR):
         os.makedirs(SESSION_DIR)
         
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Exiting.")
+        print("Program interrupted by user. Exiting.")
