@@ -274,13 +274,18 @@ function renderScraperList() {
     }
     container.innerHTML = configData.scrape_channels.map((item, idx) => `
         <div class="list-card">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem;">
-                <div style="flex: 1; margin-right: 1rem;">
+            <div style="display: flex; gap: 0.8rem; align-items: flex-start; margin-bottom: 0.8rem;">
+                <div style="flex: 1;">
                     <label style="font-size: 0.8rem; color:var(--text-secondary); margin-bottom: 0.2rem;">频道用户名 (不含 @)</label>
                     <input type="text" value="${item.username || ''}" placeholder="例如: durov" onchange="updateScraperItem(${idx}, 'username', this.value)" style="font-weight:600;">
                 </div>
-                <div>
-                     <label style="font-size: 0.8rem; color:var(--text-secondary); margin-bottom: 0.2rem; text-align:right; display:block;">启用</label>
+                <!-- 频道名称备注 -->
+                <div style="flex: 1;">
+                    <label style="font-size: 0.8rem; color:var(--text-secondary); margin-bottom: 0.2rem;">频道名称 (备注)</label>
+                    <input type="text" value="${item.name || ''}" placeholder="通知中显示的标题" onchange="updateScraperItem(${idx}, 'name', this.value)">
+                </div>
+                <div style="width: 50px; text-align:right;">
+                     <label style="font-size: 0.8rem; color:var(--text-secondary); margin-bottom: 0.2rem; display:block;">启用</label>
                      <label class="switch-label ${item.enabled !== false ? 'checked' : ''}" style="margin:0; padding: 4px 6px; border:none; background:transparent;">
                         <input type="checkbox" ${item.enabled !== false ? 'checked' : ''} onchange="updateScraperItem(${idx}, 'enabled', this.checked); renderScraperList();"> 
                         <div class="slider-track"><div class="slider-thumb"></div></div>
@@ -310,7 +315,7 @@ function renderScraperList() {
 }
 
 async function addScraperItem() {
-    configData.scrape_channels.push({ username: '', enabled: true, notifiers: ['email'] });
+    configData.scrape_channels.push({ username: '', name: '', enabled: true, notifiers: ['email'] });
     if (await saveConfigToServer()) renderScraperList();
 }
 async function removeScraperItem(idx) {
@@ -520,7 +525,7 @@ async function addKeywordToGroup(gId){ if(!configData.groups[gId].keywords) conf
 async function removeKeyword(gId, kId){ configData.groups[gId].keywords.splice(kId,1); if(await saveConfigToServer()) renderGroups(gId); }
 async function deleteGroup(e, idx) { e.stopPropagation(); if(confirm('删除此群组？')) { configData.groups.splice(idx, 1); if(await saveConfigToServer()) renderGroups(); } }
 
-/* --- 模态框逻辑：添加群组 (Add Group) [恢复缺失的部分] --- */
+/* --- 模态框逻辑：添加群组 (Add Group) --- */
 function renderModalDefaultNotify(selectedValues){
   document.getElementById('modalDefaultNotifyContainer').innerHTML = getAvailableNotifiers().map(opt => 
     `<label class="switch-label ${selectedValues.includes(opt.id)?'checked':''}" onclick="this.classList.toggle('checked', this.querySelector('input').checked)" title="${opt.name}">
