@@ -1,4 +1,3 @@
-
 # Telegram to Mail & More - 智能 Telegram 消息转发与管理中心
 
 [![GitHub Actions CI/CD](https://github.com/workerspages/telegram-to-mail/actions/workflows/build-and-push.yml/badge.svg)](https://github.com/workerspages/telegram-to-mail/actions/workflows/build-and-push.yml)
@@ -7,53 +6,56 @@
 
 **[English](README.en.md)** | **[简体中文](README.md)**
 
-一个功能强大、易于部署的 Telegram 自动化工具。它不仅可以实时监听和转发群组消息，还具备**定时任务（如自动签到）**和**关键字自动回复**功能，是您管理 Telegram 消息的得力助手。
+一个功能强大、易于部署的 Telegram 自动化工具。它不仅可以实时监听和转发群组消息，还具备**定时任务**、**关键字自动回复**功能。
+
+🚀 **v2.0 新增功能**：引入**网页爬虫（Web Scraper）**技术，支持**免登录、零风险**地订阅公开频道消息！
 
 项目内置了一个**全新设计**的现代化 Web UI 管理面板，采用极简 SaaS 风格，让所有配置操作都变得优雅且直观。
 
-![Web UI 界面截图](/pic/web.png) ---
+![Web UI 界面截图](/pic/web.png)
+
+---
 
 ## ✨ 核心功能
 
-* **实时群组监听**: 基于 Telethon 库，稳定、高效地接收指定 Telegram 群组的新消息。
-* **多通道消息推送**:
-    * **Email**: 支持 SMTP 协议，将消息发送到您的邮箱。
-    * **Bark**: 完美支持 iOS 设备的消息推送。
-    * **Pushplus**: 支持微信消息推送，即时触达。
-* **精细化关键字规则**:
-    * **精准转发**: 不同的关键字可触发不同的推送通道。
-    * **自动回复**: 🆕 检测到关键字后，可自动在群组内回复指定内容。
-    * **自定义延迟**: 🆕 支持设置回复的延迟时间（秒），模拟真人操作。
-* **定时发送任务 (🆕)**:
-    * **每日签到**: 每天向指定的机器人或群组发送指令（如 `/checkin`）。
-    * **随机时间段**: 🆕 支持设置“开始时间”与“结束时间”，系统将在区间内**随机选择一秒**发送，有效规避 Telegram 风控，防止封号。
-* **现代化 Web UI (🆕)**:
-    * **全新设计**: 采用玻璃拟态（Glassmorphism）与卡片式设计，视觉体验大幅提升。
-    * **交互优化**: 使用现代化开关（Toggle）替代传统复选框，操作更顺手。
-    * **即时保存**: 所有修改自动同步，无需手动保存。
-* **容器化与零配置**:
-    * Docker 一键部署，开箱即用。
-    * 可选 Cloudflare Tunnel 集成，无需公网 IP 也能安全访问后台。
+### 1. 📡 双模监听系统
+*   **客户端监听 (Client Mode)**: 登录 TG 账号，实时接收所有加入的群组/频道消息。支持私有群、关键字回复等高级功能。
+*   **网页爬虫订阅 (Scraper Mode) (🆕)**: **无需登录账号！** 通过监控 `t.me/s/用户名` 官方预览页抓取消息。
+    *   **零风险**: 完全匿名访问，绝对不会导致账号被封。
+    *   **独立运行**: 即使没有配置 API_ID 或登录 Session，爬虫也能独立工作。
 
+### 2. 📨 多通道消息推送
+*   **Email**: 支持 SMTP 协议，将消息发送到您的邮箱。
+*   **Bark**: 完美支持 iOS 设备的消息推送。
+*   **Pushplus**: 支持微信消息推送，即时触达。
+
+### 3. 🤖 自动化与交互
+*   **精细化关键字**: 不同关键字可触发不同通道，支持正则匹配。
+*   **自动回复**: 检测到关键字后，可自动在群内回复指定内容（支持设置随机延迟，模拟真人）。
+*   **定时任务**: 每日自动发送指令（如 `/checkin` 签到），支持在指定时间段内**随机触发**，规避风控。
+
+### 4. 🖥️ 现代化管理面板
+*   **Docker 一键部署**: 开箱即用。
+*   **Cloudflare Tunnel 集成**: 可选内置内网穿透，无需公网 IP 也能安全访问后台。
+
+---
 
 ## 🚀 快速部署指南
 
 ### 先决条件
-
-1.  一台已安装 [Docker](https://www.docker.com/) 和 [Docker Compose](https://docs.docker.com/compose/install/) 的服务器。
-2.  一个 Telegram 账号，并已从 [my.telegram.org](https://my.telegram.org) 获取到 `API_ID` 和 `API_HASH`。
+1.  一台已安装 Docker 的服务器（或 Zeabur/Railway 等容器平台）。
+2.  (可选) Telegram `API_ID` 和 `API_HASH`（仅“客户端监听”模式需要）。
 
 ### 部署步骤
 
 **第一步：克隆本项目**
 ```bash
-git clone [https://github.com/workerspages/telegram-to-mail.git](https://github.com/workerspages/telegram-to-mail.git)
+git clone https://github.com/workerspages/telegram-to-mail.git
 cd telegram-to-mail
-````
+```
 
 **第二步：配置 `docker-compose.yml`**
-
-打开项目根目录下的 `docker-compose.yml` 文件，填写必要的环境变量：
+填写必要的环境变量：
 
 ```yaml
 version: '3.8'
@@ -65,11 +67,9 @@ services:
     environment:
       - WEB_USERNAME=admin
       - WEB_PASSWORD=admin123
-      - API_ID=12345678
-      - API_HASH=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-      # 要启用 Cloudflare Tunnel 功能，请取消下面一行的注释，并粘贴您的 Token。
-      # 如果此行被注释或值为空，则容器启动时不会启用 Tunnel 功能。
-      - TUNNEL_TOKEN=     
+      - API_ID=12345678      # 可选：如果只用爬虫模式，可不填
+      - API_HASH=xxxxxxxxx   # 可选：如果只用爬虫模式，可不填
+      - TUNNEL_TOKEN=        # 可选：Cloudflare Tunnel Token
     volumes:
       - ./data:/app/data
     restart: unless-stopped
@@ -80,51 +80,40 @@ services:
 **第三步：启动服务**
 
 ```bash
-docker-compose build
 docker-compose up -d
 ```
 
-**第四步：首次登录授权**
-
-1.  访问 Web UI：`http://<服务器IP>:5000`。
-2.  首次启动需进行 Telegram 登录授权。请查看容器日志：
-    ```bash
-    docker-compose logs -f
-    ```
-    根据日志提示输入手机号和验证码即可。
-
------
+---
 
 ## 🔧 功能使用指南
 
-### 1\. 消息监听与自动回复
+### 1. 网页爬虫订阅 (免登录) 🆕
+> 适合场景：云服务器部署（无法交互输入验证码）或不想使用自己账号的情况。
 
-  * 点击右上角“**+ 群组**”添加监听规则。
-  * **关键字转发**: 输入关键字并勾选 Bark/Email 等通道，命中后即刻推送。
-  * **自动回复**: 在关键字规则中，您可以填写“自动回复内容”以及“延迟时间（秒）”。系统会在检测到关键字后，等待指定秒数再回复，显得更加自然。
+*   在 Web 面板点击顶部的 **“订阅”** 按钮。
+*   输入公开频道的用户名（例如 `durov`，无需加 @）。
+*   勾选通知通道并保存。系统后台会自动轮询更新。
 
-### 2\. 定时任务 (每日签到)
+### 2. 客户端监听与自动回复
+> 适合场景：私有群组监听、需要以账号身份发言/回复。
 
-  * 点击页面顶部的“**🕘 任务**”按钮。
-  * **目标**: 填写机器人用户名（如 `@sheeridverifier_bot`）或群组 ID。
-  * **发送内容**: 填写签到指令（如 `/checkin`）。
-  * **随机触发时段**: 设置一个较宽的时间窗口（例如 `09:00` - `10:00`）。系统每天会在此区间内**随机**选择一个时间点发送消息，极大降低被判定为机器人的风险。
+*   **登录**: 首次启动需查看容器日志输入手机号验证码。
+    *   *注意：如果在 Zeabur 等无法交互的环境，且没有上传 session 文件，系统会自动跳过此模式，仅运行爬虫。*
+*   **配置**: 点击 **“+ 群组”** 添加监听规则，设置关键字和回复延迟。
 
-### 3\. 推送通道管理
+### 3. 定时任务 (每日签到)
+*   点击 **“🕘 任务”**。
+*   设置目标（如 `@bot`）、内容（如 `/sign`）和时间段（如 `09:00 - 10:00`）。
+*   系统将在该时间段内**随机选择一秒**执行，模拟真人操作。
 
-  * 点击右上角**齿轮图标**⚙️。
-  * 支持配置无限个 Bark 设备和 Pushplus 账号，并为它们分别命名（ID），方便在不同群组中灵活调用。
+---
 
------
+## 📂 项目结构
 
-## 🛠️ 项目结构
-
-  * `src/telegram-to-mail.py`: 核心后端，负责 Telegram 协议交互、消息监听、定时任务调度。
-  * `src/web_manager.py`: Flask Web 服务，提供 API 和页面支持。
-  * `src/templates/`: 前端 HTML 模板。
-  * `src/static/style.css`: 全新设计的 CSS 样式表。
+*   `src/telegram-to-mail.py`: 核心后端（包含 Client 和 Scraper 双线程）。
+*   `src/web_manager.py`: Flask Web 服务。
+*   `src/templates/`: 前端界面。
+*   `data/`: 存放配置文件和 Session 会话（建议映射到宿主机）。
 
 ## 📄 许可证
-
 本项目基于 [MIT License](https://opensource.org/licenses/MIT) 授权。
-
