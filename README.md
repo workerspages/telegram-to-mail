@@ -117,7 +117,7 @@ docker-compose up -d
 
 ## 问：使用 Telethon 会不会导致TG号被封禁？
 
-## 答：这是一个非常关键的问题。答案是：**是的，使用 Telethon 有可能导致 TG 账号被封禁，但这主要取决于你“怎么用”，而不是“用了这个库”本身。**
+### 答：**是的，使用 Telethon 有可能导致 TG 账号被封禁，但这主要取决于你“怎么用”，而不是“用了这个库”本身。**
 
 Telethon 是基于 Telegram 官方开放的 MTProto 协议开发的，本身是合规的工具。但是，Telegram 拥有非常严格的反垃圾邮件（Anti-Spam）和反滥用机制。如果你用 Telethon 模拟人工操作时触发了这些风控机制，账号就危险了。
 
@@ -182,6 +182,6 @@ Telethon 是基于 Telegram 官方开放的 MTProto 协议开发的，本身是�
 
 **核心建议：** 把 Telethon 当作一个“不知疲倦的人类助理”，而不是“大规模轰炸机”。只要行为像个正常人，Telegram 就不会管你。
 
-
+---
 ## 📄 许可证
 本项目基于 [MIT License](https://opensource.org/licenses/MIT) 授权。
