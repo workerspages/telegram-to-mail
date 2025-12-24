@@ -115,6 +115,8 @@ docker-compose up -d
 *   `src/templates/`: 前端界面。
 *   `data/`: 存放配置文件和 Session 会话（建议映射到宿主机）。
 
+---
+
 ## 问：使用 Telethon 会不会导致TG号被封禁？
 
 ### 答：**是的，使用 Telethon 有可能导致 TG 账号被封禁，但这主要取决于你“怎么用”，而不是“用了这个库”本身。**
