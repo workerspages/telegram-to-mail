@@ -12,5 +12,6 @@
   },
   "groups": [],
   "scheduled_tasks": [],
-  "scrape_channels": []
+  "scrape_channels": [],
+  "scraper_interval": 60
 }
