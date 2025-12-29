@@ -6,7 +6,7 @@ import random
 import hashlib
 from datetime import datetime, time as dt_time
 from telethon import TelegramClient, events
-from telethon.errors import FloodWaitError, MessageDeleteForbiddenError
+from telethon.errors import FloodWaitError, MessageDeleteForbiddenError, ChatAdminRequiredError
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -17,8 +17,12 @@ from bs4 import BeautifulSoup
 CONFIG_FILE = 'config.json'
 SESSION_DIR = './session_data'
 SESSION_NAME = os.path.join(SESSION_DIR, 'telegram.session')
+BOT_SESSION_NAME = os.path.join(SESSION_DIR, 'bot.session')
 STATE_FILE = os.path.join(SESSION_DIR, 'schedule_state.json')
 SCRAPER_STATE_FILE = os.path.join(SESSION_DIR, 'scraper_state.json')
+
+# 全局 Bot 客户端变量
+bot_client = None
 
 # --- 配置加载与管理 ---
 def load_config():
@@ -144,10 +148,10 @@ async def send_pushplus(token, title, content):
             else:
                 print("Pushplus notification sent successfully.")
 
-# --- 安全操作核心逻辑 (发送/转发/删除) ---
+# --- 安全操作核心逻辑 (Bot 执行) ---
 
 async def safe_send_message(client, chat_id, message, action_desc="Message"):
-    """安全发送消息"""
+    """安全发送消息 (Userbot/Bot 通用)"""
     random_delay = random.uniform(3, 10)
     print(f"[Safety] {action_desc}: Sleeping for {random_delay:.2f}s...")
     await asyncio.sleep(random_delay)
@@ -164,49 +168,69 @@ async def safe_send_message(client, chat_id, message, action_desc="Message"):
             print(f"[Safety] Error sending {action_desc} to {chat_id}: {e}")
             break
 
-async def safe_forward_message(client, target_chat_id, message_obj, delay=0):
-    """安全转发消息"""
+async def safe_forward_message_by_bot(target_chat_id, source_chat_id, message_ids, delay=0):
+    """
+    使用 Bot 转发消息
+    注意：Bot 必须是 source_chat 的管理员(或在群内且能看到消息)，才能转发。
+    """
+    global bot_client
+    if not bot_client or not bot_client.is_connected():
+        print("[Bot Forward] Error: Bot client is not connected. Cannot forward.")
+        return
+
     if delay > 0:
         await asyncio.sleep(delay)
     
-    # 稍微加一点随机抖动，避免完全同步
-    await asyncio.sleep(random.uniform(1, 4))
+    # 随机抖动
+    await asyncio.sleep(random.uniform(1, 3))
 
     while True:
         try:
-            # 尝试解析目标ID，如果能转int则转
+            # 尝试转换 ID
             target = target_chat_id
             if isinstance(target, str) and (target.startswith('-') or target.isdigit()):
                  try: target = int(target)
                  except: pass
-
-            await client.forward_messages(target, message_obj)
-            print(f"[Forward] Message forwarded to {target_chat_id}")
+            
+            # 使用 forward_messages (Bot API)
+            # 参数: (entity=接收者, messages=消息ID, from_peer=来源群组)
+            await bot_client.forward_messages(entity=target, messages=message_ids, from_peer=source_chat_id)
+            print(f"[Bot Forward] Successfully forwarded message {message_ids} from {source_chat_id} to {target}")
             break
         except FloodWaitError as e:
-            print(f"[Forward] FloodWait detected. Waiting {e.seconds}s...")
+            print(f"[Bot Forward] FloodWait detected. Waiting {e.seconds}s...")
             await asyncio.sleep(e.seconds)
         except Exception as e:
-            print(f"[Forward] Failed to forward to {target_chat_id}: {e}")
+            print(f"[Bot Forward] Failed to forward: {e} (Ensure Bot is Admin in source/target group)")
             break
 
-async def safe_delete_message(client, chat_id, message_id, delay):
-    """安全删除消息"""
+async def safe_delete_message_by_bot(chat_id, message_id, delay):
+    """
+    使用 Bot 删除消息
+    注意：Bot 必须是该群组的管理员，且有删除消息权限。
+    """
+    global bot_client
+    if not bot_client or not bot_client.is_connected():
+        print("[Bot Delete] Error: Bot client is not connected. Cannot delete.")
+        return
+
     if delay > 0:
-        print(f"[Delete] Scheduling deletion for message {message_id} in {chat_id} after {delay}s")
+        print(f"[Bot Delete] Scheduling deletion for message {message_id} in {chat_id} after {delay}s")
         await asyncio.sleep(delay)
     
     try:
-        await client.delete_messages(chat_id, message_id)
-        print(f"[Delete] Successfully deleted message {message_id} from {chat_id}")
+        await bot_client.delete_messages(chat_id, message_id)
+        print(f"[Bot Delete] Successfully deleted message {message_id} from {chat_id}")
     except MessageDeleteForbiddenError:
-        print(f"[Delete] Failed: No permission to delete message {message_id} in {chat_id}")
+        print(f"[Bot Delete] Failed: Bot does not have permission to delete message {message_id} in {chat_id}")
+    except ChatAdminRequiredError:
+         print(f"[Bot Delete] Failed: Bot must be an admin to delete messages in {chat_id}")
     except FloodWaitError as e:
-        print(f"[Delete] FloodWait. Retrying delete after {e.seconds}s")
+        print(f"[Bot Delete] FloodWait. Retrying delete after {e.seconds}s")
         await asyncio.sleep(e.seconds)
-        await safe_delete_message(client, chat_id, message_id, 0)
+        await safe_delete_message_by_bot(chat_id, message_id, 0)
     except Exception as e:
-        print(f"[Delete] Error deleting message: {e}")
+        print(f"[Bot Delete] Error deleting message: {e}")
 
 # --- 辅助函数 ---
 def get_bark_details(config, bark_id):
@@ -229,7 +253,7 @@ def get_pushplus_token(config, pushplus_id):
     return None
 
 async def send_delayed_reply(client, chat_id, message, delay=5):
-    """延迟发送回复"""
+    """延迟发送回复 (Userbot 执行，模拟真人回复)"""
     if delay > 0:
         await asyncio.sleep(delay)
     await safe_send_message(client, chat_id, message, action_desc=f"Auto-Reply (init-delay {delay}s)")
@@ -276,18 +300,18 @@ async def handle_message(event):
     subject = f"【TG消息】{group_name}"
     body = f"发信人: {sender_info}\n\n{message_text}"
 
-    client = event.client
+    client = event.client # 这是 Userbot Client
 
-    # --- 功能 1: 消息转发 (Forwarding) ---
+    # --- 功能 1: 消息转发 (使用 Bot 执行) ---
     forward_targets = group.get('forward_targets', [])
     if forward_targets:
-        print(f"Triggering forwarding for group '{group_name}' to {len(forward_targets)} targets.")
+        print(f"Triggering BOT forwarding for group '{group_name}' to {len(forward_targets)} targets.")
         for target in forward_targets:
             if target and str(target).strip():
-                # 异步执行转发，不阻塞后续逻辑
-                asyncio.create_task(safe_forward_message(client, target, event.message))
+                # 传入 Message ID 和 Source Chat ID，让 Bot 去搬运
+                asyncio.create_task(safe_forward_message_by_bot(target, event.chat_id, event.message.id))
 
-    # --- 功能 2: 关键字检测与回复 (Keyword Reply & Notification) ---
+    # --- 功能 2: 关键字检测与回复 (使用 Userbot 执行，因为需要模拟真人) ---
     notifiers_to_trigger = set()
     keyword_matched = False
 
@@ -314,25 +338,20 @@ async def handle_message(event):
         print(f"Message from '{group_name}' triggered notifiers: {list(notifiers_to_trigger)}")
         await process_notifications(config, list(notifiers_to_trigger), subject, body)
 
-    # --- 功能 4: 消息自动删除 (Auto Delete) ---
-    # 注意：这需要 Bot/Userbot 在该群组拥有删除消息的权限
+    # --- 功能 4: 消息自动删除 (使用 Bot 执行) ---
     try:
         delete_delay = float(group.get('delete_delay', 0))
     except (ValueError, TypeError):
         delete_delay = 0
     
     if delete_delay > 0:
-        # 启动异步删除任务
-        asyncio.create_task(safe_delete_message(client, event.chat_id, event.message.id, delete_delay))
+        # 让 Bot 去删除，Userbot 不插手
+        asyncio.create_task(safe_delete_message_by_bot(event.chat_id, event.message.id, delete_delay))
 
 # --- 网页爬虫工作线程 (无登录模式) ---
 async def scraper_task_worker():
-    """
-    独立线程：每隔一段时间去访问 t.me/s/xxx 页面，解析最新消息。
-    不需要登录账号。
-    """
+    """独立线程：爬取 t.me/s/xxx"""
     print("Web Scraper worker started.")
-    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
@@ -341,13 +360,10 @@ async def scraper_task_worker():
         try:
             config = load_config()
             scraper_state = load_scraper_state()
-            
             if config:
                 channels = config.get('scrape_channels', [])
                 for channel in channels:
-                    if not channel.get('enabled', True):
-                        continue
-
+                    if not channel.get('enabled', True): continue
                     username = channel.get('username', '').replace('@', '')
                     if not username: continue
 
@@ -358,61 +374,41 @@ async def scraper_task_worker():
                                 if resp.status == 200:
                                     html = await resp.text()
                                     soup = BeautifulSoup(html, 'html.parser')
-                                    
                                     msgs = soup.select('.tgme_widget_message_text')
-                                    
                                     if msgs:
                                         latest_msg_html = msgs[-1]
                                         latest_text = latest_msg_html.get_text(separator='\n').strip()
-                                        
                                         msg_hash = hashlib.md5(latest_text.encode('utf-8')).hexdigest()
                                         last_hash = scraper_state.get(username)
-                                        
                                         if msg_hash != last_hash:
                                             print(f"[Scraper] New message found in @{username}")
-                                            
                                             scraper_state[username] = msg_hash
                                             save_scraper_state(scraper_state)
-                                            
                                             notifiers = channel.get('notifiers', [])
-                                            display_name = channel.get('name')
-                                            if not display_name:
-                                                display_name = f"@{username}"
-                                                
+                                            display_name = channel.get('name') or f"@{username}"
                                             subject = f"【TG订阅】{display_name} 更新"
                                             body = f"{latest_text}\n\n(来源: Web Preview)"
-                                            
                                             await process_notifications(config, notifiers, subject, body)
-                                    else:
-                                        pass
                                 else:
-                                    print(f"[Scraper] Failed to fetch {url}, status: {resp.status}")
-
+                                    pass
                     except Exception as e:
                         print(f"[Scraper] Error scraping {username}: {e}")
-                    
                     await asyncio.sleep(random.uniform(2, 5))
             
             interval = 60
             if config:
                 try:
                     interval = int(config.get('scraper_interval', 60))
-                    if interval < 10:
-                        interval = 10
-                except (ValueError, TypeError):
-                    interval = 60
-            
+                    if interval < 10: interval = 10
+                except: interval = 60
             await asyncio.sleep(interval)
-
         except Exception as e:
             print(f"Error in scraper worker: {e}")
             await asyncio.sleep(60)
 
-# --- 定时任务处理逻辑 (依赖客户端) ---
+# --- 定时任务处理逻辑 (依赖 Userbot 客户端) ---
 async def scheduled_task_worker(client):
-    """
-    后台任务：每分钟检查定时任务。
-    """
+    """后台任务：每分钟检查定时任务"""
     print("Scheduled task worker started.")
     daily_random_targets = {}
     last_check_minute = None
@@ -433,15 +429,12 @@ async def scheduled_task_worker(client):
             if config:
                 tasks = config.get('scheduled_tasks', [])
                 for idx, task in enumerate(tasks):
-                    if not task.get('enabled', True):
-                        continue
-
+                    if not task.get('enabled', True): continue
                     target = task.get('target')
                     msg = task.get('message')
                     task_sig = f"{target}_{msg}_{task.get('time_start')}_{task.get('time_end')}_{idx}"
                     
-                    if state.get(task_sig) == today_str:
-                        continue
+                    if state.get(task_sig) == today_str: continue
 
                     t_start_str = task.get('time_start') or task.get('time') or "08:00"
                     t_end_str = task.get('time_end') or task.get('time') or "08:00"
@@ -460,13 +453,11 @@ async def scheduled_task_worker(client):
                         if target_key not in daily_random_targets:
                             time_min_ts = max(now.timestamp(), dt_start.timestamp())
                             time_max_ts = dt_end.timestamp()
-                            
                             if time_max_ts > time_min_ts:
                                 random_ts = random.uniform(time_min_ts, time_max_ts)
                                 random_dt = datetime.fromtimestamp(random_ts)
                             else:
                                 random_dt = now
-                            
                             daily_random_targets[target_key] = random_dt
                             print(f"[Schedule] Task {idx} target set to {random_dt.strftime('%H:%M:%S')}")
                         
@@ -476,7 +467,6 @@ async def scheduled_task_worker(client):
                             try:
                                 entity = int(target) if target.lstrip('-').isdigit() else target
                                 await safe_send_message(client, entity, msg, action_desc=f"Scheduled Task {idx}")
-                                
                                 print(f"[Schedule] Executed task {idx}: Sent '{msg}' to {target}")
                                 state[task_sig] = today_str
                                 save_state(state)
@@ -484,14 +474,11 @@ async def scheduled_task_worker(client):
                                     del daily_random_targets[target_key]
                             except Exception as e:
                                 print(f"[Schedule] Failed to send to {target}: {e}")
-                                
                     except ValueError:
                         pass
-
             last_check_minute = current_minute_str
             seconds_to_sleep = 60 - datetime.now().second
             await asyncio.sleep(seconds_to_sleep)
-            
         except Exception as e:
             print(f"Error in scheduled worker: {e}")
             await asyncio.sleep(60)
@@ -499,6 +486,7 @@ async def scheduled_task_worker(client):
 # --- 主程序入口 ---
 async def main():
     """主函数"""
+    global bot_client
     print("Starting services...")
     
     asyncio.create_task(scraper_task_worker())
@@ -506,52 +494,60 @@ async def main():
     api_id = os.getenv('API_ID')
     api_hash = os.getenv('API_HASH')
     
+    # --- 1. 初始化 Bot 客户端 (用于执行转发/删除) ---
+    config = load_config()
+    bot_token = config.get('bot_token') if config else None
+    
+    if api_id and api_hash:
+        try:
+            api_id = int(api_id)
+            if bot_token:
+                print(f"Initializing Bot Client with token: {bot_token[:5]}***...")
+                bot_client = TelegramClient(BOT_SESSION_NAME, api_id, api_hash)
+                await bot_client.start(bot_token=bot_token)
+                print("Bot Client started successfully (Action Executor).")
+            else:
+                print("Notice: No 'bot_token' found in config.json. Forward/Delete features will NOT work.")
+        except Exception as e:
+            print(f"Error starting Bot Client: {e}")
+
+    # --- 2. 初始化 Userbot 客户端 (用于监听消息/定时任务) ---
     session_exists = os.path.exists(SESSION_NAME)
 
     if not api_id or not api_hash:
-        print("Warning: API_ID/HASH not set. Telegram Client mode disabled. Only Web Scraper will work.")
-        while True:
-            await asyncio.sleep(3600)
+        print("Warning: API_ID/HASH not set. Userbot mode disabled.")
+        while True: await asyncio.sleep(3600)
         return
 
     if not session_exists:
         print("----------------------------------------------------------------")
-        print(f"Notice: Session file not found at {SESSION_NAME}")
-        print("Interactive login is not supported in this environment.")
-        print(">> The Telegram Client (Listen/Forward/Schedule) will be SKIPPED.")
-        print(">> The Web Scraper (Anonymous Subscription) is RUNNING.")
+        print(f"Notice: User session file not found at {SESSION_NAME}")
+        print("Interactive login skipped. Running Scraper & Bot (if configured).")
         print("----------------------------------------------------------------")
-        while True:
-            await asyncio.sleep(3600)
+        while True: await asyncio.sleep(3600)
         return
 
     try:
-        api_id = int(api_id)
         client = TelegramClient(SESSION_NAME, api_id, api_hash)
         
         @client.on(events.NewMessage)
         async def event_handler(event):
             await handle_message(event)
 
-        print("Attempting to connect Telegram client...")
+        print("Attempting to connect Userbot client...")
         await client.start()
-        print("Telegram client started successfully.")
+        print("Userbot client started successfully (Listener).")
         
         client.loop.create_task(scheduled_task_worker(client))
-        
         await client.run_until_disconnected()
 
     except Exception as e:
-        print(f"Telegram client error: {e}")
-        print("Client crashed or failed to start. Keeping process alive for Web Scraper...")
-        while True:
-            await asyncio.sleep(60)
+        print(f"Userbot client error: {e}")
+        while True: await asyncio.sleep(60)
 
 if __name__ == '__main__':
-    if not os.path.exists(SESSION_DIR):
-        os.makedirs(SESSION_DIR)
-        
+    if not os.path.exists(SESSION_DIR): os.makedirs(SESSION_DIR)
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Program interrupted by user. Exiting.")
+        print("Program interrupted.")
