@@ -1,11 +1,11 @@
 {
   "notifiers": {
     "email": {
-      "msmtp_host": "",
+      "msmtp_host": "smtp.qq.com",
       "msmtp_port": "587",
-      "msmtp_user": "",
+      "msmtp_user": "184146089@qq.com",
       "msmtp_pass": "",
-      "msmtp_from": ""
+      "msmtp_from": "184146089@qq.com"
     },
     "bark": [],
     "pushplus": []
