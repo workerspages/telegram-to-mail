@@ -1,5 +1,4 @@
 {
-  "bot_token": "",
   "notifiers": {
     "email": {
       "msmtp_host": "",
@@ -14,5 +13,6 @@
   "groups": [],
   "scheduled_tasks": [],
   "scrape_channels": [],
-  "scraper_interval": 60
+  "auto_delete_rules": [],
+  "forward_rules": []
 }
