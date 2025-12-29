@@ -1,534 +1,404 @@
-import asyncio
-import os
-import json
-import aiohttp
-import random
-import hashlib
-from datetime import datetime, time as dt_time
-from telethon import TelegramClient, events
-from telethon.errors import FloodWaitError
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-from bs4 import BeautifulSoup
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Telegram 配置中心</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
 
-# 定义常量
-CONFIG_FILE = 'config.json'
-SESSION_DIR = './session_data'
-SESSION_NAME = os.path.join(SESSION_DIR, 'telegram.session')
-STATE_FILE = os.path.join(SESSION_DIR, 'schedule_state.json')
-SCRAPER_STATE_FILE = os.path.join(SESSION_DIR, 'scraper_state.json')
+<div class="container">
+  <header class="main-header">
+    <h2>Telegram 配置中心</h2>
+    <div class="header-actions">
+      <!-- 原有按钮 -->
+      <button class="btn btn-primary" onclick="openAddGroupModal()" title="添加群组监听">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span style="margin-left:6px">群组</span>
+      </button>
 
-# --- 配置加载与管理 ---
-def load_config():
-    """从 config.json 加载配置"""
-    if not os.path.exists(CONFIG_FILE):
-        print(f"Error: Config file not found at {CONFIG_FILE}")
-        return None
-    try:
-        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"Error reading or parsing config file: {e}")
-        return None
+      <button class="btn btn-primary" onclick="openScraperModal()" title="网页爬虫订阅 (免登录)" style="background: linear-gradient(to right, #10b981, #059669);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        <span style="margin-left:6px">订阅</span>
+      </button>
 
-def load_state():
-    """加载定时任务状态"""
-    if not os.path.exists(STATE_FILE):
-        return {}
-    try:
-        with open(STATE_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
+      <!-- ★★★ 新增：自动删除按钮 ★★★ -->
+      <button class="btn btn-secondary" onclick="openAutoDeleteModal()" title="自动删除消息">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
 
-def save_state(state):
-    """保存定时任务状态"""
-    try:
-        with open(STATE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error saving schedule state: {e}")
+      <!-- ★★★ 新增：消息转发按钮 ★★★ -->
+      <button class="btn btn-secondary" onclick="openForwardModal()" title="消息转发">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+      </button>
 
-def load_scraper_state():
-    """加载爬虫状态"""
-    if not os.path.exists(SCRAPER_STATE_FILE):
-        return {}
-    try:
-        with open(SCRAPER_STATE_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
+      <button class="btn btn-secondary" onclick="openScheduleModal()" title="定时任务">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span style="margin-left:6px">任务</span>
+      </button>
+      <button class="btn-icon" onclick="openNotifierModal()" title="设置">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      </button>
+       <button class="btn-icon btn-icon-danger" onclick="logout()" title="退出">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
+    </div>
+  </header>
 
-def save_scraper_state(state):
-    """保存爬虫状态"""
-    try:
-        with open(SCRAPER_STATE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error saving scraper state: {e}")
+  <main id="groupList"></main>
+</div>
 
-def update_msmtp_config(email_config):
-    """动态更新 msmtp 配置文件"""
-    conf = f"""defaults
-auth           on
-tls            on
-tls_trust_file /etc/ssl/certs/ca-certificates.crt
-logfile        /dev/stdout
+<!-- ================= 弹窗：推送设置 ================= -->
+<div id="notifierModalMask" class="modal-mask">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>推送通道设置</h2>
+      <button class="close" onclick="closeNotifierModal()">&times;</button>
+    </div>
+    <form id="notifierForm" style="display:flex; flex-direction:column; height:100%;">
+      <div class="modal-body">
+        <div style="margin-bottom: 2rem;">
+          <h4 style="margin:0 0 1rem; font-size:0.9rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Email (SMTP)</h4>
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1rem;">
+              <div class="form-group"><label>Host</label><input id="msmtp_host" type="text"></div>
+              <div class="form-group"><label>Port</label><input id="msmtp_port" type="text"></div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+              <div class="form-group"><label>Username</label><input id="msmtp_user" type="text"></div>
+              <div class="form-group"><label>Password</label><input id="msmtp_pass" type="password"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;"><label>From Address</label><input id="msmtp_from" type="text"></div>
+        </div>
+        <div id="barkTokenList"></div>
+        <div id="pushTokenList"></div>
+      </div>
+      <div class="modal-actions">
+        <span id="notifierStatus" style="margin-right:auto; font-size:0.9rem; align-self:center;"></span>
+        <button type="button" class="btn btn-secondary" onclick="closeNotifierModal()">取消</button>
+        <button type="submit" class="btn btn-primary">保存设置</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-account        default
-host           {email_config.get('msmtp_host', '')}
-port           {email_config.get('msmtp_port', '587')}
-from           {email_config.get('msmtp_from', '')}
-user           {email_config.get('msmtp_user', '')}
-password       {email_config.get('msmtp_pass', '')}
-"""
-    try:
-        with open('/etc/msmtprc', 'w') as f:
-            f.write(conf)
-        os.chmod('/etc/msmtprc', 0o600)
-    except IOError as e:
-        print(f"Error writing msmtp config: {e}")
+<!-- ================= 弹窗：添加群组 ================= -->
+<div id="addGroupModalMask" class="modal-mask">
+  <div class="modal">
+     <div class="modal-header"><h2>添加新群组</h2><button class="close" onclick="closeAddGroupModal()">&times;</button></div>
+    <form id="addGroupForm" style="display:flex; flex-direction:column; height:100%;">
+      <div class="modal-body">
+        <div class="form-group"><label>群组 ID</label><input type="text" id="modalGroupId" required placeholder="-100xxxxxxxxx"></div>
+        <div class="form-group"><label>群组名称 (备注)</label><input type="text" id="modalGroupName"></div>
+        <div class="form-group" style="margin-top:1.5rem;"><label style="margin-bottom:0.8rem;">默认推送通道</label><div id="modalDefaultNotifyContainer" class="switch-grid"></div></div>
+        <div class="form-group" style="margin-top:2rem;"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;"><label style="margin:0;">关键字规则 (可选)</label><button type="button" class="btn btn-secondary" onclick="addKeywordRow()" style="height:28px; font-size:0.8rem;">+ 规则</button></div><div id="addGroupKeywords"></div></div>
+      </div>
+      <div class="modal-actions">
+        <span class="error-msg" id="addGroupError" style="margin-right:auto; color:var(--danger); font-size:0.9rem; align-self:center;"></span>
+        <button type="button" class="btn btn-secondary" onclick="closeAddGroupModal()">取消</button>
+        <button type="submit" class="btn btn-primary">保存群组</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-# --- 推送服务 ---
-async def send_email(email_config, subject, body, attachment=None, filename=None):
-    """发送邮件"""
-    update_msmtp_config(email_config)
-    msg = MIMEMultipart()
-    msg['From'] = email_config.get('msmtp_from')
-    msg['To'] = email_config.get('msmtp_from')
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain', 'utf-8'))
-    
-    if attachment:
-        part = MIMEBase('application', 'octet-stream')
-        part.set_payload(attachment)
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', 'attachment', filename=filename)
-        msg.attach(part)
-        
-    raw_bytes = msg.as_bytes()
-    proc = await asyncio.create_subprocess_exec(
-        'msmtp', '-t',
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
-    stdout, stderr = await proc.communicate(input=raw_bytes)
-    
-    if proc.returncode != 0:
-        print(f"msmtp error: {stderr.decode()}")
-    else:
-        print("Email sent successfully.")
+<!-- ================= 弹窗：定时任务 ================= -->
+<div id="scheduleModalMask" class="modal-mask">
+  <div class="modal">
+    <div class="modal-header"><h2>定时任务 (每日签到)</h2><button class="close" onclick="closeScheduleModal()">&times;</button></div>
+    <div class="modal-body" style="background: #f9fafb;">
+      <div id="scheduleTaskList"></div>
+      <button type="button" class="btn btn-secondary" onclick="addScheduleTask()" style="width: 100%; border-style:dashed;">+ 添加新任务</button>
+    </div>
+    <div class="modal-actions"><span id="scheduleStatus" style="margin-right:auto;"></span><button type="button" class="btn btn-secondary" onclick="closeScheduleModal()">关闭</button></div>
+  </div>
+</div>
 
-async def send_bark(server_url, token, title, content):
-    """发送 Bark 推送"""
-    base_url = server_url.rstrip('/')
-    url = f"{base_url}/{token}/{title}/{content}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status != 200:
-                print(f"Failed to send Bark notification to {base_url}. Status: {response.status}, Response: {await response.text()}")
-            else:
-                print(f"Bark notification sent successfully via {base_url}.")
+<!-- ================= 弹窗：网页爬虫 ================= -->
+<div id="scraperModalMask" class="modal-mask">
+  <div class="modal">
+    <div class="modal-header"><h2>Web 订阅 (无需登录)</h2><button class="close" onclick="closeScraperModal()">&times;</button></div>
+    <div class="modal-body" style="background: #f9fafb;">
+      <div style="background: #fff; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+        <div><label style="display:block; font-weight:600; font-size:0.9rem;">轮询频率</label><span style="font-size:0.8rem; color:var(--text-secondary);">两次检查等待时间 (秒)</span></div>
+        <input type="number" id="scraperIntervalInput" min="10" step="10" style="width:80px; text-align:center;" onchange="updateScraperInterval(this.value)">
+      </div>
+      <div id="scraperList"></div>
+      <button type="button" class="btn btn-secondary" onclick="addScraperItem()" style="width: 100%; border-style:dashed; margin-top:1rem;">+ 添加订阅频道</button>
+    </div>
+    <div class="modal-actions"><span id="scraperStatus" style="margin-right:auto;"></span><button type="button" class="btn btn-secondary" onclick="closeScraperModal()">关闭</button></div>
+  </div>
+</div>
 
-async def send_pushplus(token, title, content):
-    """发送 Pushplus 推送"""
-    url = "https://www.pushplus.plus/send"
-    payload = {"token": token, "title": title, "content": content}
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=payload) as response:
-            if response.status != 200:
-                print(f"Failed to send Pushplus notification. Status: {response.status}, Response: {await response.text()}")
-            else:
-                print("Pushplus notification sent successfully.")
+<!-- ================= ★★★ 新增弹窗：自动删除消息 ★★★ ================= -->
+<div id="autoDeleteModalMask" class="modal-mask">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>自动删除消息</h2>
+      <button class="close" onclick="closeAutoDeleteModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="background: #f9fafb;">
+      <div class="form-group" style="text-align:center; margin-bottom:1rem;">
+         <p style="color:var(--text-secondary); font-size:0.85rem; margin:0;">请确保填写的 Bot 已加入该群组并设为管理员。</p>
+      </div>
+      <div id="autoDeleteList"></div>
+      <button type="button" class="btn btn-secondary" onclick="addAutoDeleteItem()" style="width: 100%; border-style:dashed;">+ 添加规则</button>
+    </div>
+    <div class="modal-actions">
+      <span id="autoDeleteStatus" style="margin-right:auto; font-size:0.9rem; align-self:center;"></span>
+      <button type="button" class="btn btn-secondary" onclick="closeAutoDeleteModal()">关闭</button>
+    </div>
+  </div>
+</div>
 
-# --- 安全发送核心逻辑 ---
-async def safe_send_message(client, chat_id, message, action_desc="Message"):
-    random_delay = random.uniform(3, 10)
-    print(f"[Safety] {action_desc}: Sleeping for {random_delay:.2f}s to mimic human behavior...")
-    await asyncio.sleep(random_delay)
+<!-- ================= ★★★ 新增弹窗：消息转发 ★★★ ================= -->
+<div id="forwardModalMask" class="modal-mask">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>消息转发</h2>
+      <button class="close" onclick="closeForwardModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="background: #f9fafb;">
+      <div class="form-group" style="text-align:center; margin-bottom:1rem;">
+         <p style="color:var(--text-secondary); font-size:0.85rem; margin:0;">Bot 需在源群组和目标群组中。</p>
+      </div>
+      <div id="forwardList"></div>
+      <button type="button" class="btn btn-secondary" onclick="addForwardItem()" style="width: 100%; border-style:dashed;">+ 添加转发规则</button>
+    </div>
+    <div class="modal-actions">
+      <span id="forwardStatus" style="margin-right:auto; font-size:0.9rem; align-self:center;"></span>
+      <button type="button" class="btn btn-secondary" onclick="closeForwardModal()">关闭</button>
+    </div>
+  </div>
+</div>
 
-    while True:
-        try:
-            await client.send_message(chat_id, message)
-            print(f"[Safety] {action_desc} sent successfully to {chat_id}.")
-            break
-        except FloodWaitError as e:
-            print(f"[Safety] WARNING: Telegram is throttling us! Must wait for {e.seconds} seconds.")
-            print(f"[Safety] Sleeping for {e.seconds}s now... DO NOT restart the script.")
-            await asyncio.sleep(e.seconds)
-            print(f"[Safety] Wait over. Retrying to send {action_desc}...")
-        except Exception as e:
-            print(f"[Safety] Unexpected error sending {action_desc} to {chat_id}: {e}")
-            break
 
-# --- ★★★ 新增：Telegram Bot API 辅助函数 ★★★ ---
-async def bot_api_request(token, method, data):
-    """通用 Bot API 请求函数"""
-    url = f"https://api.telegram.org/bot{token}/{method}"
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=data) as response:
-                result = await response.json()
-                if not result.get('ok'):
-                    print(f"[Bot API Error] Method: {method}, Error: {result.get('description')}")
-                return result
-    except Exception as e:
-        print(f"[Bot API Exception] {method}: {e}")
-        return None
+<!-- ================= JAVASCRIPT 逻辑 ================= -->
+<script>
+let configData = {{ config|tojson|safe }};
 
-async def execute_auto_delete(token, chat_id, message_id, delay):
-    """执行自动删除任务"""
-    if delay > 0:
-        await asyncio.sleep(delay)
-    
-    print(f"[Auto-Delete] Deleting message {message_id} in {chat_id} via Bot...")
-    await bot_api_request(token, 'deleteMessage', {
-        'chat_id': chat_id,
-        'message_id': message_id
-    })
+// 初始化数据结构
+if (!configData.scheduled_tasks) configData.scheduled_tasks = [];
+if (!configData.scrape_channels) configData.scrape_channels = [];
+if (!configData.auto_delete_rules) configData.auto_delete_rules = [];
+if (!configData.forward_rules) configData.forward_rules = [];
 
-async def execute_forward(token, from_chat_id, to_chat_id, message_id):
-    """执行消息转发任务 (使用 copyMessage)"""
-    print(f"[Forward] Copying message {message_id} from {from_chat_id} to {to_chat_id} via Bot...")
-    # 使用 copyMessage 可以在不显示“转发自”的情况下复制内容
-    # 如果机器人不在源群组，可能需要机器人是管理员才能读取 ID
-    await bot_api_request(token, 'copyMessage', {
-        'chat_id': to_chat_id,
-        'from_chat_id': from_chat_id,
-        'message_id': message_id
-    })
+const pushTypes = { bark: "Bark", pushplus: "Pushplus", email: "Email" };
 
-# --- 辅助函数 ---
-def get_bark_details(config, bark_id):
-    notifiers_config = config.get('notifiers', {})
-    if 'bark' in notifiers_config:
-        for bark_notifier in notifiers_config['bark']:
-            if bark_notifier.get('id') == bark_id:
-                return {
-                    "token": bark_notifier.get('token'),
-                    "server_url": bark_notifier.get('server_url')
-                }
-    return None
+async function saveConfigToServer() {
+    try {
+        const response = await fetch('/api/config', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(configData)
+        });
+        return response.ok;
+    } catch (error) { console.error(error); return false; }
+}
 
-def get_pushplus_token(config, pushplus_id):
-    notifiers_config = config.get('notifiers', {})
-    if 'pushplus' in notifiers_config:
-        for pushplus_notifier in notifiers_config['pushplus']:
-            if pushplus_notifier.get('id') == pushplus_id:
-                return pushplus_notifier.get('token')
-    return None
+/* --- UI Helpers --- */
+function toggleGroup(idx) { document.getElementById(`group-card-${idx}`)?.classList.toggle('expanded'); }
+function getAvailableNotifiers() {
+    let options = [{ id: 'email', name: 'Email' }];
+    if (configData.notifiers.bark) configData.notifiers.bark.forEach(n => options.push({ id: n.id, name: n.id }));
+    if (configData.notifiers.pushplus) configData.notifiers.pushplus.forEach(n => options.push({ id: n.id, name: n.id }));
+    return options;
+}
 
-async def send_delayed_reply(client, chat_id, message, delay=5):
-    """延迟发送回复"""
-    if delay > 0:
-        await asyncio.sleep(delay)
-    await safe_send_message(client, chat_id, message, action_desc=f"Auto-Reply (init-delay {delay}s)")
+/* --- Modals --- */
+function openNotifierModal(){ renderNotifierModal(); document.getElementById('notifierModalMask').classList.add('active'); }
+function closeNotifierModal(){ document.getElementById('notifierModalMask').classList.remove('active'); }
 
-# --- 核心消息处理逻辑 ---
-async def process_notifications(config, notifiers_list, subject, body):
-    """处理并发送一组通知"""
-    for nid in notifiers_list:
-        try:
-            if nid.startswith('bark'):
-                bark_details = get_bark_details(config, nid)
-                if bark_details and bark_details.get('token'):
-                    server_url = bark_details.get('server_url') or "https://api.day.app"
-                    await send_bark(server_url, bark_details['token'], subject, body)
+function openAddGroupModal(){ document.getElementById('addGroupForm').reset(); document.getElementById('addGroupModalMask').classList.add('active'); renderModalDefaultNotify([]); renderKeywordRows([]); }
+function closeAddGroupModal(){ document.getElementById('addGroupModalMask').classList.remove('active'); }
 
-            elif nid.startswith('pushplus'):
-                token = get_pushplus_token(config, nid)
-                if token:
-                    await send_pushplus(token, subject, body)
-                    
-            elif nid == "email":
-                if 'email' in config.get('notifiers', {}):
-                    await send_email(config['notifiers']['email'], subject, body)
-        except Exception as e:
-            print(f"[ERROR] Failed to process notifier '{nid}'. Reason: {e}")
+function openScheduleModal(){ renderScheduleList(); document.getElementById('scheduleModalMask').classList.add('active'); }
+function closeScheduleModal(){ document.getElementById('scheduleModalMask').classList.remove('active'); }
 
-async def handle_message(event):
-    """处理 TG 客户端接收到的新消息"""
-    config = load_config()
-    if not config:
-        return
+function openScraperModal() { renderScraperList(); document.getElementById('scraperIntervalInput').value = configData.scraper_interval || 60; document.getElementById('scraperModalMask').classList.add('active'); }
+function closeScraperModal() { document.getElementById('scraperModalMask').classList.remove('active'); }
 
-    chat_id = str(event.chat_id)
-    message_text = event.message.text or ""
-    client = event.client
+// ★★★ 新增：Modal Open/Close Logic ★★★
+function openAutoDeleteModal() { renderAutoDeleteList(); document.getElementById('autoDeleteModalMask').classList.add('active'); document.getElementById('autoDeleteStatus').textContent=""; }
+function closeAutoDeleteModal() { document.getElementById('autoDeleteModalMask').classList.remove('active'); }
 
-    # 1. ★★★ 新增功能：自动删除消息 ★★★
-    # 检查是否有针对此群组的自动删除规则
-    auto_delete_rules = config.get('auto_delete_rules', [])
-    for rule in auto_delete_rules:
-        if not rule.get('enabled', True): continue
-        # 匹配群组ID (支持多个ID，这里简化为匹配配置中的 group_id)
-        rule_group_id = str(rule.get('group_id', ''))
-        
-        if rule_group_id == chat_id:
-            try:
-                delay = int(rule.get('delay', 60))
-                token = rule.get('bot_token')
-                if token:
-                    asyncio.create_task(execute_auto_delete(token, chat_id, event.id, delay))
-            except Exception as e:
-                print(f"[Auto-Delete] Error scheduling delete: {e}")
+function openForwardModal() { renderForwardList(); document.getElementById('forwardModalMask').classList.add('active'); document.getElementById('forwardStatus').textContent=""; }
+function closeForwardModal() { document.getElementById('forwardModalMask').classList.remove('active'); }
 
-    # 2. ★★★ 新增功能：消息转发 ★★★
-    # 检查是否有针对此群组的转发规则
-    forward_rules = config.get('forward_rules', [])
-    for rule in forward_rules:
-        if not rule.get('enabled', True): continue
-        
-        source_id = str(rule.get('source_id', ''))
-        if source_id == chat_id:
-            target_id = rule.get('target_id')
-            token = rule.get('bot_token')
-            if target_id and token:
-                asyncio.create_task(execute_forward(token, chat_id, target_id, event.id))
 
-    # 3. 原有功能：邮件/推送通知监听
-    group = next((g for g in config.get('groups', []) if g.get('id') == chat_id), None)
-    if not group:
-        return
-
-    sender = await event.message.get_sender()
-    sender_info = f"{sender.first_name or ''} {sender.last_name or ''} (@{getattr(sender, 'username', 'N/A')})" if sender else "Unknown Sender"
-    
-    group_name = group.get('name', 'Unknown Group')
-    subject = f"【TG消息】{group_name}"
-    body = f"发信人: {sender_info}\n\n{message_text}"
-
-    notifiers_to_trigger = set()
-    keyword_matched = False
-
-    for keyword_rule in group.get('keywords', []):
-        if keyword_rule.get('word') and keyword_rule.get('word') in message_text:
-            notifiers_to_trigger.update(keyword_rule.get('notifiers', []))
-            keyword_matched = True
-            
-            reply_content = keyword_rule.get('reply_content')
-            if reply_content:
-                try:
-                    delay_seconds = float(keyword_rule.get('reply_delay', 5))
-                except (ValueError, TypeError):
-                    delay_seconds = 5
-                
-                print(f"Keyword matched '{keyword_rule.get('word')}'. Scheduling reply in {delay_seconds}s...")
-                asyncio.create_task(send_delayed_reply(client, event.chat_id, reply_content, delay_seconds))
-
-    if not keyword_matched:
-        notifiers_to_trigger.update(group.get('default_notifiers', []))
-
-    if notifiers_to_trigger:
-        print(f"Message from '{group_name}' triggered notifiers: {list(notifiers_to_trigger)}")
-        await process_notifications(config, list(notifiers_to_trigger), subject, body)
-
-# --- 网页爬虫工作线程 (无登录模式) ---
-async def scraper_task_worker():
-    """独立线程：爬虫任务"""
-    print("Web Scraper worker started.")
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+/* --- ★★★ 渲染逻辑：自动删除消息 (Auto Delete) ★★★ --- */
+function renderAutoDeleteList() {
+    const container = document.getElementById('autoDeleteList');
+    if (configData.auto_delete_rules.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#9ca3af; padding: 2rem;">暂无删除规则</div>';
+        return;
     }
+    container.innerHTML = configData.auto_delete_rules.map((rule, idx) => `
+        <div class="list-card">
+            <div style="display: flex; gap:0.5rem; margin-bottom: 0.8rem;">
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem; color:var(--text-secondary);">群组 ID (Group ID)</label>
+                    <input type="text" value="${rule.group_id || ''}" placeholder="如: -100xxxx" onchange="updateAutoDelete(${idx}, 'group_id', this.value)">
+                </div>
+                <div style="width:80px;">
+                    <label style="font-size:0.8rem; color:var(--text-secondary);">延迟(秒)</label>
+                    <input type="number" value="${rule.delay || 60}" placeholder="60" onchange="updateAutoDelete(${idx}, 'delay', this.value)" style="text-align:center;">
+                </div>
+            </div>
+            <div style="margin-bottom:0.8rem;">
+                 <label style="font-size:0.8rem; color:var(--text-secondary);">Telegram Bot Token</label>
+                 <input type="text" value="${rule.bot_token || ''}" placeholder="123456:ABC-DEF..." onchange="updateAutoDelete(${idx}, 'bot_token', this.value)">
+            </div>
+            <div style="text-align:right;">
+                <button type="button" class="btn-icon btn-icon-danger" onclick="removeAutoDelete(${idx})" title="删除" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+async function addAutoDeleteItem() { configData.auto_delete_rules.push({ group_id: '', delay: 60, bot_token: '', enabled: true }); if (await saveConfigToServer()) renderAutoDeleteList(); }
+async function removeAutoDelete(idx) { if(confirm("删除此规则？")) { configData.auto_delete_rules.splice(idx, 1); if (await saveConfigToServer()) renderAutoDeleteList(); } }
+async function updateAutoDelete(idx, key, value) { 
+    configData.auto_delete_rules[idx][key] = value; 
+    const s = document.getElementById('autoDeleteStatus'); s.textContent = "保存中..."; 
+    if(await saveConfigToServer()) { s.textContent = "已保存"; setTimeout(()=>s.textContent="", 1000); }
+}
 
-    while True:
-        try:
-            config = load_config()
-            scraper_state = load_scraper_state()
-            
-            if config:
-                channels = config.get('scrape_channels', [])
-                for channel in channels:
-                    if not channel.get('enabled', True): continue
+/* --- ★★★ 渲染逻辑：消息转发 (Forward) ★★★ --- */
+function renderForwardList() {
+    const container = document.getElementById('forwardList');
+    if (configData.forward_rules.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#9ca3af; padding: 2rem;">暂无转发规则</div>';
+        return;
+    }
+    container.innerHTML = configData.forward_rules.map((rule, idx) => `
+        <div class="list-card">
+            <div style="display: flex; gap:0.5rem; margin-bottom: 0.8rem;">
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem; color:var(--text-secondary);">源群组 ID</label>
+                    <input type="text" value="${rule.source_id || ''}" placeholder="从哪转..." onchange="updateForward(${idx}, 'source_id', this.value)">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem; color:var(--text-secondary);">目标群组 ID</label>
+                    <input type="text" value="${rule.target_id || ''}" placeholder="转到哪..." onchange="updateForward(${idx}, 'target_id', this.value)">
+                </div>
+            </div>
+            <div style="margin-bottom:0.8rem;">
+                 <label style="font-size:0.8rem; color:var(--text-secondary);">Telegram Bot Token</label>
+                 <input type="text" value="${rule.bot_token || ''}" placeholder="123456:ABC-DEF..." onchange="updateForward(${idx}, 'bot_token', this.value)">
+            </div>
+            <div style="text-align:right;">
+                <button type="button" class="btn-icon btn-icon-danger" onclick="removeForward(${idx})" title="删除" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+async function addForwardItem() { configData.forward_rules.push({ source_id: '', target_id: '', bot_token: '', enabled: true }); if (await saveConfigToServer()) renderForwardList(); }
+async function removeForward(idx) { if(confirm("删除此规则？")) { configData.forward_rules.splice(idx, 1); if (await saveConfigToServer()) renderForwardList(); } }
+async function updateForward(idx, key, value) { 
+    configData.forward_rules[idx][key] = value; 
+    const s = document.getElementById('forwardStatus'); s.textContent = "保存中..."; 
+    if(await saveConfigToServer()) { s.textContent = "已保存"; setTimeout(()=>s.textContent="", 1000); }
+}
 
-                    username = channel.get('username', '').replace('@', '')
-                    if not username: continue
 
-                    url = f"https://t.me/s/{username}"
-                    try:
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(url, headers=headers, timeout=10) as resp:
-                                if resp.status == 200:
-                                    html = await resp.text()
-                                    soup = BeautifulSoup(html, 'html.parser')
-                                    msgs = soup.select('.tgme_widget_message_text')
-                                    
-                                    if msgs:
-                                        latest_msg_html = msgs[-1]
-                                        latest_text = latest_msg_html.get_text(separator='\n').strip()
-                                        msg_hash = hashlib.md5(latest_text.encode('utf-8')).hexdigest()
-                                        last_hash = scraper_state.get(username)
-                                        
-                                        if msg_hash != last_hash:
-                                            print(f"[Scraper] New message found in @{username}")
-                                            scraper_state[username] = msg_hash
-                                            save_scraper_state(scraper_state)
-                                            
-                                            notifiers = channel.get('notifiers', [])
-                                            display_name = channel.get('name')
-                                            if not display_name:
-                                                display_name = f"@{username}"
-                                                
-                                            subject = f"【TG订阅】{display_name} 更新"
-                                            body = f"{latest_text}\n\n(来源: Web Preview)"
-                                            
-                                            await process_notifications(config, notifiers, subject, body)
-                                else:
-                                    print(f"[Scraper] Failed to fetch {url}, status: {resp.status}")
-                    except Exception as e:
-                        print(f"[Scraper] Error scraping {username}: {e}")
-                    
-                    await asyncio.sleep(random.uniform(2, 5))
-            
-            interval = 60
-            if config:
-                try:
-                    interval = int(config.get('scraper_interval', 60))
-                    if interval < 10: interval = 10
-                except (ValueError, TypeError): interval = 60
-            
-            await asyncio.sleep(interval)
+/* --- 其他原有逻辑 (Schedule/Scraper/Groups/Notifiers) --- */
+function renderScraperList() {
+    const container = document.getElementById('scraperList');
+    if (configData.scrape_channels.length === 0) { container.innerHTML = '<div style="text-align:center; color:#9ca3af; padding: 1rem;">暂无订阅</div>'; return; }
+    container.innerHTML = configData.scrape_channels.map((item, idx) => `
+        <div class="list-card">
+            <div style="display: flex; gap: 0.8rem; align-items: flex-start; margin-bottom: 0.8rem;">
+                <div style="flex: 1;"><label style="font-size: 0.8rem; color:var(--text-secondary);">频道用户名 (不含 @)</label><input type="text" value="${item.username || ''}" onchange="updateScraperItem(${idx}, 'username', this.value)" style="font-weight:600;"></div>
+                <div style="flex: 1;"><label style="font-size: 0.8rem; color:var(--text-secondary);">备注</label><input type="text" value="${item.name || ''}" onchange="updateScraperItem(${idx}, 'name', this.value)"></div>
+            </div>
+            <div style="margin-bottom:0.8rem; background: #fff; padding:0.5rem; border-radius:8px; border:1px dashed #e5e7eb;"><label style="font-size: 0.8rem; color:var(--text-secondary);">通知通道</label><div class="switch-grid" id="scraper-notify-${idx}">${getAvailableNotifiers().map(opt => `<label class="switch-label ${(item.notifiers || []).includes(opt.id)?'checked':''}"><input type="checkbox" value="${opt.id}" ${(item.notifiers || []).includes(opt.id)?'checked':''} onchange="updateScraperNotifier(${idx})"><div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span></label>`).join('')}</div></div>
+            <div style="text-align:right;"><button type="button" class="btn-icon btn-icon-danger" onclick="removeScraperItem(${idx})" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+        </div>`).join('');
+}
+async function addScraperItem() { configData.scrape_channels.push({ username: '', name: '', enabled: true, notifiers: ['email'] }); if (await saveConfigToServer()) renderScraperList(); }
+async function removeScraperItem(idx) { if(confirm("删除此订阅？")) { configData.scrape_channels.splice(idx, 1); if (await saveConfigToServer()) renderScraperList(); } }
+async function updateScraperItem(idx, key, value) { configData.scrape_channels[idx][key] = value; await saveConfigToServer(); }
+async function updateScraperNotifier(idx) { configData.scrape_channels[idx].notifiers = Array.from(document.querySelectorAll(`#scraper-notify-${idx} input:checked`)).map(el => el.value); await saveConfigToServer(); }
+async function updateScraperInterval(val) { configData.scraper_interval = parseInt(val) || 60; await saveConfigToServer(); }
 
-        except Exception as e:
-            print(f"Error in scraper worker: {e}")
-            await asyncio.sleep(60)
+function renderScheduleList() {
+    const container = document.getElementById('scheduleTaskList');
+    if (configData.scheduled_tasks.length === 0) { container.innerHTML = '<div style="text-align:center; color:#9ca3af; padding: 2rem;">暂无定时任务</div>'; return; }
+    container.innerHTML = configData.scheduled_tasks.map((task, idx) => `
+        <div class="list-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem;">
+                <div style="flex: 1; margin-right: 1rem;"><label style="font-size: 0.8rem; color:var(--text-secondary);">发送目标</label><input type="text" value="${task.target || ''}" onchange="updateScheduleTask(${idx}, 'target', this.value)" style="font-weight:500;"></div>
+                <div><label style="font-size: 0.8rem; color:var(--text-secondary);">状态</label><label class="switch-label ${task.enabled !== false ? 'checked' : ''}" style="margin:0; padding: 4px 6px; border:none; background:transparent;"><input type="checkbox" ${task.enabled !== false ? 'checked' : ''} onchange="updateScheduleTask(${idx}, 'enabled', this.checked); renderScheduleList();"><div class="slider-track"><div class="slider-thumb"></div></div></label></div>
+            </div>
+            <div style="margin-bottom: 0.8rem;"><label style="font-size: 0.8rem; color:var(--text-secondary);">随机触发时段</label><div class="time-range-group"><input type="time" value="${task.time_start || '08:00'}" onchange="updateScheduleTask(${idx}, 'time_start', this.value)" style="flex:1;"><span class="time-separator">→</span><input type="time" value="${task.time_end || '09:00'}" onchange="updateScheduleTask(${idx}, 'time_end', this.value)" style="flex:1;"></div></div>
+            <div style="display: flex; gap: 0.5rem; align-items: flex-end;"><div style="flex-grow: 1;"><label style="font-size: 0.8rem; color:var(--text-secondary);">内容</label><input type="text" value="${task.message || ''}" onchange="updateScheduleTask(${idx}, 'message', this.value)"></div><button type="button" class="btn-icon btn-icon-danger" onclick="removeScheduleTask(${idx})" style="border: 1px solid var(--border); border-radius: 10px; height: 42px; width: 42px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+        </div>`).join('');
+}
+async function addScheduleTask() { configData.scheduled_tasks.push({ target: '@bot', message: '/sign', time_start: '09:00', time_end: '10:00', enabled: true }); if (await saveConfigToServer()) renderScheduleList(); }
+async function removeScheduleTask(idx) { if(confirm("确定删除？")) { configData.scheduled_tasks.splice(idx, 1); if (await saveConfigToServer()) renderScheduleList(); } }
+async function updateScheduleTask(idx, key, value) { configData.scheduled_tasks[idx][key] = value; await saveConfigToServer(); }
 
-# --- 定时任务处理逻辑 (依赖客户端) ---
-async def scheduled_task_worker(client):
-    """后台任务：定时任务"""
-    print("Scheduled task worker started.")
-    daily_random_targets = {}
-    last_check_minute = None
+function renderNotifierModal(){
+  let n = configData.notifiers;
+  document.getElementById('msmtp_host').value = n.email.msmtp_host||''; document.getElementById('msmtp_port').value = n.email.msmtp_port||''; document.getElementById('msmtp_user').value = n.email.msmtp_user||''; document.getElementById('msmtp_pass').value = n.email.msmtp_pass||''; document.getElementById('msmtp_from').value = n.email.msmtp_from||'';
+  const renderTokenRow = (t, idx, type) => `<div class="list-card" style="padding:0.8rem; margin-bottom:0.5rem; display:flex; gap:0.5rem; align-items:center;"><div style="flex:1; display:flex; flex-direction:column; gap:0.5rem;">${type === 'bark' ? `<input type="text" value="${t.server_url || ''}" placeholder="Server URL" onchange="updateGlobalToken('${type}', ${idx}, 'server_url', this.value)" style="font-size:0.85rem; height:36px;">` : ''}<input type="text" value="${t.token}" placeholder="Token" onchange="updateGlobalToken('${type}', ${idx}, 'token', this.value)" style="height:36px;"></div><div style="display:flex; flex-direction:column; align-items:center; gap:0.2rem;"><span class="id-badge" style="font-size:0.7rem;">${t.id}</span><button type="button" class="btn-icon btn-icon-danger" onclick="removeGlobalToken('${type}', ${idx})"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div></div>`;
+  document.getElementById('barkTokenList').innerHTML = (n.bark || []).map((t, i) => renderTokenRow(t, i, 'bark')).join('');
+  document.getElementById('pushTokenList').innerHTML = (n.pushplus || []).map((t, i) => renderTokenRow(t, i, 'pushplus')).join('');
+}
+function addGlobalToken(type){ if (!configData.notifiers[type]) configData.notifiers[type] = []; configData.notifiers[type].push({id: `${type}_${Date.now()}`, token: '', server_url: ''}); renderNotifierModal(); }
+function removeGlobalToken(type, idx){ configData.notifiers[type].splice(idx, 1); renderNotifierModal(); }
+function updateGlobalToken(type, idx, key, value){ configData.notifiers[type][idx][key] = value; }
 
-    while True:
-        try:
-            now = datetime.now()
-            today_str = now.strftime("%Y-%m-%d")
-            current_minute_str = now.strftime("%H:%M")
-            
-            if last_check_minute == current_minute_str:
-                await asyncio.sleep(1)
-                continue
-                
-            config = load_config()
-            state = load_state()
-            
-            if config:
-                tasks = config.get('scheduled_tasks', [])
-                for idx, task in enumerate(tasks):
-                    if not task.get('enabled', True): continue
+function renderGroups() {
+  const container = document.getElementById('groupList');
+  if (configData.groups.length === 0) { container.innerHTML = `<div style="text-align:center; padding: 4rem; color: var(--text-secondary); border: 2px dashed var(--border); border-radius: var(--radius);"><h3 style="margin:0 0 0.5rem;">暂无群组</h3><p style="margin:0;">请点击右上角按钮添加。</p></div>`; return; }
+  container.innerHTML = configData.groups.map((group, idx) => `
+      <div class="group-card" id="group-card-${idx}">
+        <div class="group-card-header" onclick="toggleGroup(${idx})">
+          <div class="toggle-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+          <div class="group-title">${group.name || '未命名'}<span class="id-badge">${group.id}</span></div>
+          <button class="btn-icon btn-icon-danger" onclick="deleteGroup(event, ${idx})" title="删除"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+        </div>
+        <div class="group-card-body">
+            <div class="form-group"><label>默认推送通道</label><div class="switch-grid" id="group-${idx}-default">${getAvailableNotifiers().map(opt => `<label class="switch-label ${(group.default_notifiers||[]).includes(opt.id)?'checked':''}"><input type="checkbox" value="${opt.id}" ${(group.default_notifiers||[]).includes(opt.id)?'checked':''} onchange="updateGroupNotifier(${idx})"><div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span></label>`).join('')}</div></div>
+            <div class="form-group" style="margin-top:2rem;"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="margin:0">关键字推送规则</label><button type="button" class="btn btn-secondary" onclick="addKeywordToGroup(${idx})" style="height:32px; font-size:0.85rem;">+ 关键字</button></div><div>${(group.keywords || []).map((kw, kidx) => `<div class="list-card"><div style="display:flex; gap:0.5rem; margin-bottom:0.8rem;"><input type="text" value="${kw.word||''}" placeholder="输入匹配关键字..." onchange="updateKeywordWord(${idx}, ${kidx}, this.value)"><button type="button" class="btn-icon btn-icon-danger" onclick="removeKeyword(${idx}, ${kidx})"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div style="margin-bottom:0.8rem; padding-bottom:0.8rem; border-bottom:1px solid #f3f4f6;"><div class="switch-grid" id="group-${idx}-kw-${kidx}">${getAvailableNotifiers().map(opt => `<label class="switch-label ${(kw.notifiers||[]).includes(opt.id)?'checked':''}"><input type="checkbox" value="${opt.id}" ${(kw.notifiers||[]).includes(opt.id)?'checked':''} onchange="updateKeywordNotifier(${idx}, ${kidx})"><div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span></label>`).join('')}</div></div><div style="display: flex; gap: 0.8rem; align-items: flex-end;"><div style="flex-grow: 1;"><label style="font-size:0.8rem; color:var(--text-secondary);">自动回复内容</label><input type="text" value="${kw.reply_content||''}" onchange="updateKeywordReply(${idx}, ${kidx}, this.value)"></div><div style="width: 80px;"><label style="font-size:0.8rem; color:var(--text-secondary);">延迟(秒)</label><input type="number" value="${kw.reply_delay||5}" onchange="updateKeywordDelay(${idx}, ${kidx}, this.value)"></div></div></div>`).join('')}</div></div>
+        </div>
+      </div>`).join('');
+}
+async function updateGroupNotifier(gId) { configData.groups[gId].default_notifiers = Array.from(document.querySelectorAll(`#group-${gId}-default input:checked`)).map(el => el.value); await saveConfigToServer(); }
+async function updateKeywordNotifier(gId, kId) { configData.groups[gId].keywords[kId].notifiers = Array.from(document.querySelectorAll(`#group-${gId}-kw-${kId} input:checked`)).map(el => el.value); await saveConfigToServer(); }
+async function updateKeywordWord(gId, kId, val){ configData.groups[gId].keywords[kId].word = val.trim(); await saveConfigToServer(); }
+async function updateKeywordReply(gId, kId, val){ configData.groups[gId].keywords[kId].reply_content = val; await saveConfigToServer(); }
+async function updateKeywordDelay(gId, kId, val){ configData.groups[gId].keywords[kId].reply_delay = val; await saveConfigToServer(); }
+async function addKeywordToGroup(gId){ if(!configData.groups[gId].keywords) configData.groups[gId].keywords=[]; configData.groups[gId].keywords.push({word:'', notifiers:[], reply_content:'', reply_delay: 5}); if(await saveConfigToServer()) renderGroups(gId); }
+async function removeKeyword(gId, kId){ configData.groups[gId].keywords.splice(kId,1); if(await saveConfigToServer()) renderGroups(gId); }
+async function deleteGroup(e, idx) { e.stopPropagation(); if(confirm('删除此群组？')) { configData.groups.splice(idx, 1); if(await saveConfigToServer()) renderGroups(); } }
 
-                    target = task.get('target')
-                    msg = task.get('message')
-                    task_sig = f"{target}_{msg}_{task.get('time_start')}_{task.get('time_end')}_{idx}"
-                    
-                    if state.get(task_sig) == today_str: continue
+let addGroupKeywords = [];
+function renderKeywordRows(kws){ addGroupKeywords = kws; document.getElementById('addGroupKeywords').innerHTML = kws.map((kw, idx) => `<div class="list-card" style="margin-bottom:0.5rem; padding:0.8rem;"><div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;"><input type="text" value="${kw.word||''}" onchange="updateNewKeywordWord(${idx}, this.value)" placeholder="关键字"><button type="button" class="btn-icon btn-icon-danger" onclick="removeKeywordRow(${idx})"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div style="margin-bottom:0.8rem;"><div class="switch-grid" id="modal-kw-${idx}">${getAvailableNotifiers().map(opt => `<label class="switch-label ${(kw.notifiers||[]).includes(opt.id)?'checked':''}"><input type="checkbox" value="${opt.id}" ${(kw.notifiers||[]).includes(opt.id)?'checked':''}><div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span></label>`).join('')}</div></div><div style="display: flex; gap: 0.8rem; align-items: flex-end;"><div style="flex-grow: 1;"><label style="font-size:0.75rem;">自动回复</label><input type="text" value="${kw.reply_content||''}" onchange="updateNewKeywordReply(${idx}, this.value)"></div><div style="width: 80px;"><label style="font-size:0.75rem;">延迟(秒)</label><input type="number" value="${kw.reply_delay||5}" onchange="updateNewKeywordDelay(${idx}, this.value)"></div></div></div>`).join(''); }
+function addKeywordRow(){ addGroupKeywords.push({word:'', notifiers:[], reply_content:'', reply_delay: 5}); renderKeywordRows(addGroupKeywords); }
+function removeKeywordRow(idx){ addGroupKeywords.splice(idx, 1); renderKeywordRows(addGroupKeywords); }
+function renderModalDefaultNotify(selectedValues){ document.getElementById('modalDefaultNotifyContainer').innerHTML = getAvailableNotifiers().map(opt => `<label class="switch-label ${selectedValues.includes(opt.id)?'checked':''}"><input type="checkbox" value="${opt.id}" ${selectedValues.includes(opt.id)?'checked':''}><div class="slider-track"><div class="slider-thumb"></div></div><span class="switch-text">${opt.name}</span></label>`).join(''); }
+function updateNewKeywordWord(idx, val){ addGroupKeywords[idx].word = val.trim(); }
+function updateNewKeywordReply(idx, val){ addGroupKeywords[idx].reply_content = val; }
+function updateNewKeywordDelay(idx, val){ addGroupKeywords[idx].reply_delay = val; }
 
-                    t_start_str = task.get('time_start') or task.get('time') or "08:00"
-                    t_end_str = task.get('time_end') or task.get('time') or "08:00"
-                    
-                    try:
-                        h_s, m_s = map(int, t_start_str.split(':'))
-                        h_e, m_e = map(int, t_end_str.split(':'))
-                        dt_start = now.replace(hour=h_s, minute=m_s, second=0, microsecond=0)
-                        dt_end = now.replace(hour=h_e, minute=m_e, second=0, microsecond=0)
-                        
-                        if dt_end < dt_start: continue
-                        if now < dt_start: continue
-                        if now > dt_end: continue
-                        
-                        target_key = f"{task_sig}_{today_str}"
-                        if target_key not in daily_random_targets:
-                            time_min_ts = max(now.timestamp(), dt_start.timestamp())
-                            time_max_ts = dt_end.timestamp()
-                            
-                            if time_max_ts > time_min_ts:
-                                random_ts = random.uniform(time_min_ts, time_max_ts)
-                                random_dt = datetime.fromtimestamp(random_ts)
-                            else:
-                                random_dt = now
-                            
-                            daily_random_targets[target_key] = random_dt
-                            print(f"[Schedule] Task {idx} target set to {random_dt.strftime('%H:%M:%S')}")
-                        
-                        target_dt = daily_random_targets[target_key]
-                        
-                        if now >= target_dt:
-                            try:
-                                entity = int(target) if target.lstrip('-').isdigit() else target
-                                await safe_send_message(client, entity, msg, action_desc=f"Scheduled Task {idx}")
-                                
-                                print(f"[Schedule] Executed task {idx}: Sent '{msg}' to {target}")
-                                state[task_sig] = today_str
-                                save_state(state)
-                                if target_key in daily_random_targets:
-                                    del daily_random_targets[target_key]
-                            except Exception as e:
-                                print(f"[Schedule] Failed to send to {target}: {e}")
-                                
-                    except ValueError:
-                        pass
+document.getElementById('addGroupForm').onsubmit = async function(e){
+  e.preventDefault();
+  const gid = document.getElementById('modalGroupId').value.trim();
+  if(!gid) return document.getElementById('addGroupError').textContent="ID必填";
+  addGroupKeywords.forEach((kw, i) => { kw.notifiers = Array.from(document.querySelectorAll(`#modal-kw-${i} input:checked`)).map(el=>el.value); });
+  configData.groups.push({ id: gid, name: document.getElementById('modalGroupName').value.trim(), default_notifiers: Array.from(document.querySelectorAll('#modalDefaultNotifyContainer input:checked')).map(el=>el.value), keywords: JSON.parse(JSON.stringify(addGroupKeywords)) });
+  if(await saveConfigToServer()) { closeAddGroupModal(); renderGroups(); }
+};
+document.getElementById('notifierForm').onsubmit = async function(e){ e.preventDefault(); configData.notifiers.email = { msmtp_host: document.getElementById('msmtp_host').value, msmtp_port: document.getElementById('msmtp_port').value, msmtp_user: document.getElementById('msmtp_user').value, msmtp_pass: document.getElementById('msmtp_pass').value, msmtp_from: document.getElementById('msmtp_from').value }; if(await saveConfigToServer()) closeNotifierModal(); };
+function logout(){ location.href="/logout"; }
 
-            last_check_minute = current_minute_str
-            seconds_to_sleep = 60 - datetime.now().second
-            await asyncio.sleep(seconds_to_sleep)
-            
-        except Exception as e:
-            print(f"Error in scheduled worker: {e}")
-            await asyncio.sleep(60)
-
-# --- 主程序入口 ---
-async def main():
-    """主函数"""
-    print("Starting services...")
-    asyncio.create_task(scraper_task_worker())
-
-    api_id = os.getenv('API_ID')
-    api_hash = os.getenv('API_HASH')
-    session_exists = os.path.exists(SESSION_NAME)
-
-    if not api_id or not api_hash:
-        print("Warning: API_ID/HASH not set. Telegram Client mode disabled. Only Web Scraper will work.")
-        while True: await asyncio.sleep(3600)
-        return
-
-    if not session_exists:
-        print("----------------------------------------------------------------")
-        print(f"Notice: Session file not found at {SESSION_NAME}")
-        print("Interactive login is not supported in this environment.")
-        print(">> The Telegram Client (Listen/Forward/Schedule) will be SKIPPED.")
-        print(">> The Web Scraper (Anonymous Subscription) is RUNNING.")
-        print("----------------------------------------------------------------")
-        while True: await asyncio.sleep(3600)
-        return
-
-    try:
-        api_id = int(api_id)
-        client = TelegramClient(SESSION_NAME, api_id, api_hash)
-        
-        @client.on(events.NewMessage)
-        async def event_handler(event):
-            await handle_message(event)
-
-        print("Attempting to connect Telegram client...")
-        await client.start()
-        print("Telegram client started successfully.")
-        
-        client.loop.create_task(scheduled_task_worker(client))
-        await client.run_until_disconnected()
-
-    except Exception as e:
-        print(f"Telegram client error: {e}")
-        print("Client crashed or failed to start. Keeping process alive for Web Scraper...")
-        while True: await asyncio.sleep(60)
-
-if __name__ == '__main__':
-    if not os.path.exists(SESSION_DIR):
-        os.makedirs(SESSION_DIR)
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Program interrupted by user. Exiting.")
+renderGroups();
+</script>
+</body>
+</html>
