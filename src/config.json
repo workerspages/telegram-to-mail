@@ -10,7 +10,16 @@
     "bark": [],
     "pushplus": []
   },
-  "groups": [],
+  "groups": [
+    {
+      "id": "-100123456789",
+      "name": "示例群组",
+      "default_notifiers": ["email"],
+      "keywords": [],
+      "forward_targets": [],
+      "delete_delay": 0
+    }
+  ],
   "scheduled_tasks": [],
   "scrape_channels": [],
   "scraper_interval": 60
