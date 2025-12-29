@@ -146,6 +146,9 @@ async def send_pushplus(token, title, content):
 
 # --- 安全发送核心逻辑 ---
 async def safe_send_message(client, chat_id, message, action_desc="Message"):
+    """
+    包装 client.send_message，加入随机延时和错误重试逻辑。
+    """
     random_delay = random.uniform(3, 10)
     print(f"[Safety] {action_desc}: Sleeping for {random_delay:.2f}s to mimic human behavior...")
     await asyncio.sleep(random_delay)
@@ -191,10 +194,8 @@ async def execute_auto_delete(token, chat_id, message_id, delay):
     })
 
 async def execute_forward(token, from_chat_id, to_chat_id, message_id):
-    """执行消息转发任务 (使用 copyMessage)"""
+    """执行消息转发任务 (使用 copyMessage 以获得更好的效果)"""
     print(f"[Forward] Copying message {message_id} from {from_chat_id} to {to_chat_id} via Bot...")
-    # 使用 copyMessage 可以在不显示“转发自”的情况下复制内容
-    # 如果机器人不在源群组，可能需要机器人是管理员才能读取 ID
     await bot_api_request(token, 'copyMessage', {
         'chat_id': to_chat_id,
         'from_chat_id': from_chat_id,
@@ -259,12 +260,11 @@ async def handle_message(event):
     message_text = event.message.text or ""
     client = event.client
 
-    # 1. ★★★ 新增功能：自动删除消息 ★★★
-    # 检查是否有针对此群组的自动删除规则
+    # --- 1. ★★★ 新增功能：自动删除消息 ★★★ ---
     auto_delete_rules = config.get('auto_delete_rules', [])
     for rule in auto_delete_rules:
         if not rule.get('enabled', True): continue
-        # 匹配群组ID (支持多个ID，这里简化为匹配配置中的 group_id)
+        # 匹配群组ID
         rule_group_id = str(rule.get('group_id', ''))
         
         if rule_group_id == chat_id:
@@ -272,12 +272,12 @@ async def handle_message(event):
                 delay = int(rule.get('delay', 60))
                 token = rule.get('bot_token')
                 if token:
+                    # 异步启动删除任务，不阻塞主线程
                     asyncio.create_task(execute_auto_delete(token, chat_id, event.id, delay))
             except Exception as e:
                 print(f"[Auto-Delete] Error scheduling delete: {e}")
 
-    # 2. ★★★ 新增功能：消息转发 ★★★
-    # 检查是否有针对此群组的转发规则
+    # --- 2. ★★★ 新增功能：消息转发 ★★★ ---
     forward_rules = config.get('forward_rules', [])
     for rule in forward_rules:
         if not rule.get('enabled', True): continue
@@ -287,9 +287,10 @@ async def handle_message(event):
             target_id = rule.get('target_id')
             token = rule.get('bot_token')
             if target_id and token:
+                # 异步启动转发任务
                 asyncio.create_task(execute_forward(token, chat_id, target_id, event.id))
 
-    # 3. 原有功能：邮件/推送通知监听
+    # --- 3. 原有功能：消息监听与推送 ---
     group = next((g for g in config.get('groups', []) if g.get('id') == chat_id), None)
     if not group:
         return
@@ -484,17 +485,23 @@ async def scheduled_task_worker(client):
 async def main():
     """主函数"""
     print("Starting services...")
+    # 始终启动网页爬虫任务 (独立于 TG 客户端)
     asyncio.create_task(scraper_task_worker())
 
     api_id = os.getenv('API_ID')
     api_hash = os.getenv('API_HASH')
+    
+    # 检查是否存在 Session 文件
     session_exists = os.path.exists(SESSION_NAME)
 
+    # 情况 A: 环境变量缺失
     if not api_id or not api_hash:
         print("Warning: API_ID/HASH not set. Telegram Client mode disabled. Only Web Scraper will work.")
-        while True: await asyncio.sleep(3600)
+        while True:
+            await asyncio.sleep(3600)
         return
 
+    # 情况 B: 有 API 配置，但没有 Session 文件 (无法交互登录)
     if not session_exists:
         print("----------------------------------------------------------------")
         print(f"Notice: Session file not found at {SESSION_NAME}")
@@ -502,9 +509,11 @@ async def main():
         print(">> The Telegram Client (Listen/Forward/Schedule) will be SKIPPED.")
         print(">> The Web Scraper (Anonymous Subscription) is RUNNING.")
         print("----------------------------------------------------------------")
-        while True: await asyncio.sleep(3600)
+        while True:
+            await asyncio.sleep(3600)
         return
 
+    # 情况 C: 有 Session 文件，正常启动客户端
     try:
         api_id = int(api_id)
         client = TelegramClient(SESSION_NAME, api_id, api_hash)
@@ -517,17 +526,23 @@ async def main():
         await client.start()
         print("Telegram client started successfully.")
         
+        # 启动定时任务 (依赖 Client)
         client.loop.create_task(scheduled_task_worker(client))
+        
         await client.run_until_disconnected()
 
     except Exception as e:
         print(f"Telegram client error: {e}")
         print("Client crashed or failed to start. Keeping process alive for Web Scraper...")
-        while True: await asyncio.sleep(60)
+        # 如果客户端崩溃，保持主进程存活以运行爬虫
+        while True:
+            await asyncio.sleep(60)
 
 if __name__ == '__main__':
+    # 确保持久化目录存在
     if not os.path.exists(SESSION_DIR):
         os.makedirs(SESSION_DIR)
+        
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
