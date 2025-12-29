@@ -3,9 +3,9 @@
     "email": {
       "msmtp_host": "smtp.qq.com",
       "msmtp_port": "587",
-      "msmtp_user": "184146089@qq.com",
+      "msmtp_user": "123456789@qq.com",
       "msmtp_pass": "",
-      "msmtp_from": "184146089@qq.com"
+      "msmtp_from": "123456789@qq.com"
     },
     "bark": [],
     "pushplus": []
