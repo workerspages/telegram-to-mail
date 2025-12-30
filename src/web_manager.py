@@ -1,20 +1,36 @@
 from flask import Flask, request, jsonify, session, redirect, url_for, render_template
 from werkzeug.security import check_password_hash, generate_password_hash
-import os, json
+import os
+import storage  # 引入 storage
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.getenv('WEB_SECRET_KEY', 'change_this_secret')
-CONFIG_FILE = 'config.json'
 WEB_USERNAME = os.getenv('WEB_USERNAME', 'admin')
 WEB_PASSWORD = os.getenv('WEB_PASSWORD', 'admin123')
 WEB_PASSWORD_HASH = generate_password_hash(WEB_PASSWORD)
 
 def load_config():
-    with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    """从存储加载配置"""
+    cfg = storage.load_data('config')
+    # 如果存储中没有配置（例如新部署的数据库），返回默认结构，防止前端报错
+    if not cfg:
+        return {
+            "notifiers": {
+                "email": {},
+                "bark": [],
+                "pushplus": []
+            },
+            "groups": [],
+            "scheduled_tasks": [],
+            "scrape_channels": [],
+            "auto_delete_rules": [],
+            "forward_rules": []
+        }
+    return cfg
+
 def dump_config(cfg):
-    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-        json.dump(cfg, f, ensure_ascii=False, indent=2)
+    """保存配置到存储"""
+    storage.save_data('config', cfg)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -57,4 +73,6 @@ def api_notifiers():
     return jsonify(cfg['notifiers'])
 
 if __name__ == "__main__":
+    # Web 启动时也初始化存储
+    storage.init_storage()
     app.run(host='0.0.0.0', port=5000)
