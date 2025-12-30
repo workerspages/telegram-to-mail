@@ -1,9 +1,7 @@
 version: '3.8'
 services:
   telegram-to-mail:
-    image: ghcr.io/workerspages/telegram-to-mail:panel-sendmessage-scraper   # 带网页管理面板+发送消息功能+网页爬虫
-  # image: ghcr.io/workerspages/telegram-to-mail:panel-sendmessage           # 带网页管理面板+发送消息功能
-  # image: ghcr.io/workerspages/telegram-to-mail:panel                       # 带网页管理面板
+    image: ghcr.io/workerspages/telegram-to-mail:mariadb
     container_name: telegram-to-mail
     restart: unless-stopped
     ports:
