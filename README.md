@@ -92,7 +92,11 @@ docker-compose up -d
     *   `MARIADB_USER`: 数据库用户名
     *   `MARIADB_PASSWORD`: 数据库密码
     *   `MARIADB_DATABASE`: 数据库名
-    *   *(以及常规的 WEB_USERNAME, WEB_PASSWORD, API_ID, API_HASH)*
+  
+    *   *   `WEB_USERNAME`: admin
+        *   `WEB_PASSWORD`: admin123
+        *   `API_ID`: 12345678          (可选：如果只用爬虫或Bot功能，可不填)
+        *   `API_HASH`: xxxxxxxxx       (可选：如果只用爬虫或Bot功能，可不填)
 4.  **首次登录**:
     *   部署后查看容器日志（Logs）。
     *   如果配置了 `API_ID`，程序会提示输入手机号和验证码。
@@ -139,7 +143,7 @@ docker-compose up -d
 
 ## 常见问题 (Q&A)
 
-### Q: 部署到 Zeabur/Railway 后，重启容器配置丢失了？
+### Q: 部署到 Koyeb / Zeabur / Railway 后，重启容器配置丢失了？
 A: 请确保您配置了 `MARIADB_` 系列环境变量。如果配置正确，程序日志会显示 `[Storage] Using MariaDB mode`，此时配置会存入数据库，重启不会丢失。如果不配置数据库，PaaS 平台的临时文件系统会在重启后重置。
 
 ### Q: 使用 Bot 功能需要配置 API_ID 吗？
