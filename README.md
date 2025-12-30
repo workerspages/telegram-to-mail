@@ -92,12 +92,13 @@ docker-compose up -d
     *   `MARIADB_USER`: 数据库用户名
     *   `MARIADB_PASSWORD`: 数据库密码
     *   `MARIADB_DATABASE`: 数据库名
-  
+4.  **配置环境变量**:
+    填写以下常用变量：
     *   `WEB_USERNAME`: admin
     *   `WEB_PASSWORD`: admin123
     *   `API_ID`: 12345678          (可选：如果只用爬虫或Bot功能，可不填)
     *   `API_HASH`: xxxxxxxxx       (可选：如果只用爬虫或Bot功能，可不填)
-4.  **首次登录**:
+6.  **首次登录**:
     *   部署后查看容器日志（Logs）。
     *   如果配置了 `API_ID`，程序会提示输入手机号和验证码。
     *   **登录成功后，Session 字符串会自动加密存入数据库。**
