@@ -300,7 +300,26 @@ async def handle_message(event):
         return
 
     sender = await event.message.get_sender()
-    sender_info = f"{sender.first_name or ''} {sender.last_name or ''} (@{getattr(sender, 'username', 'N/A')})" if sender else "Unknown Sender"
+    
+    # --- 修复逻辑开始 ---
+    sender_info = "Unknown Sender"
+    if sender:
+        # 如果是用户 (User)，有 first_name
+        if hasattr(sender, 'first_name'):
+            fn = sender.first_name or ''
+            ln = sender.last_name or ''
+            un = getattr(sender, 'username', 'N/A')
+            sender_info = f"{fn} {ln} (@{un})".strip()
+        # 如果是频道或群组 (Channel/Chat)，只有 title
+        elif hasattr(sender, 'title'):
+            title = sender.title
+            un = getattr(sender, 'username', 'N/A')
+            sender_info = f"{title} (@{un})".strip()
+        # 其他情况
+        else:
+            sender_info = "Unknown Entity"
+    # --- 修复逻辑结束 ---
+    
     
     group_name = group.get('name', 'Unknown Group')
     subject = f"【TG消息】{group_name}"
