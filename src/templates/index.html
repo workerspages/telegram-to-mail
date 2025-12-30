@@ -530,7 +530,7 @@ function renderScheduleList() {
 }
 
 async function addScheduleTask() {
-    configData.scheduled_tasks.push({ target: '@bot', message: '/sign', time_start: '09:00', time_end: '10:00', enabled: true });
+    configData.scheduled_tasks.push({ target: '@bot', message: '/checkin', time_start: '09:00', time_end: '10:00', enabled: true });
     if (await saveConfigToServer()) renderScheduleList();
 }
 
