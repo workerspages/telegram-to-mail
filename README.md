@@ -62,17 +62,34 @@ cd telegram-to-mail
 version: '3.8'
 services:
   telegram-to-mail:
-    build: .
+    image: ghcr.io/workerspages/telegram-to-mail:mariadb
+    container_name: telegram-to-mail
+    restart: unless-stopped
     ports:
       - "5000:5000"
     environment:
+      - WEB_SECRET_KEY=xxxxxxxxxxxxxxxx     # 保护用户的登录会话
       - WEB_USERNAME=admin
-      - WEB_PASSWORD=admin123
-      - API_ID=12345678      # 可选：如果只用爬虫或Bot功能，可不填
-      - API_HASH=xxxxxxxxx   # 可选：如果只用爬虫或Bot功能，可不填
+      - WEB_PASSWORD=admin
+      
+      - API_ID=123456789                    # 可选：如果只用爬虫或Bot功能，可不填
+      - API_HASH=123456789abcd              # 可选：如果只用爬虫或Bot功能，可不填
+
+      # 要启用 Cloudflare Tunnel 功能，请取消下面一行的注释，并粘贴您的 Token。
+      # 如果此行被注释或值为空，则容器启动时不会启用 Tunnel 功能。
+      # Cloudflare Tunnel 域名：https://xxxxxxxxxx-cloudflare-tunnel.com
+  #   - TUNNEL_TOKEN=eyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     volumes:
-      - ./data:/app/data     # 映射本地目录存储数据
-    restart: unless-stopped
+      - ./data:/app/data
+    stdin_open: true
+    tty: true
+    # 日志管理配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 ```
 ```bash
 docker-compose up -d
