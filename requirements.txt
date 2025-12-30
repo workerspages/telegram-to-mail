@@ -5,3 +5,4 @@ flask-wtf
 bcrypt
 aiohttp
 beautifulsoup4
+pymysql
