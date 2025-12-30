@@ -6,71 +6,41 @@ import random
 import hashlib
 from datetime import datetime, time as dt_time
 from telethon import TelegramClient, events
+from telethon.sessions import StringSession
 from telethon.errors import FloodWaitError
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from bs4 import BeautifulSoup
+import storage  # 引入 storage 模块
 
-# 定义常量
-CONFIG_FILE = 'config.json'
-SESSION_DIR = './session_data'
-SESSION_NAME = os.path.join(SESSION_DIR, 'telegram.session')
-STATE_FILE = os.path.join(SESSION_DIR, 'schedule_state.json')
-SCRAPER_STATE_FILE = os.path.join(SESSION_DIR, 'scraper_state.json')
+# 初始化存储层
+storage.init_storage()
 
-# --- 配置加载与管理 ---
+# --- 配置加载与管理 (代理给 storage) ---
 def load_config():
-    """从 config.json 加载配置"""
-    if not os.path.exists(CONFIG_FILE):
-        print(f"Error: Config file not found at {CONFIG_FILE}")
-        return None
-    try:
-        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"Error reading or parsing config file: {e}")
-        return None
+    """从存储加载配置"""
+    return storage.load_data('config')
 
 def load_state():
     """加载定时任务状态"""
-    if not os.path.exists(STATE_FILE):
-        return {}
-    try:
-        with open(STATE_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    return storage.load_data('schedule_state', {})
 
 def save_state(state):
     """保存定时任务状态"""
-    try:
-        with open(STATE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error saving schedule state: {e}")
+    storage.save_data('schedule_state', state)
 
 def load_scraper_state():
     """加载爬虫状态"""
-    if not os.path.exists(SCRAPER_STATE_FILE):
-        return {}
-    try:
-        with open(SCRAPER_STATE_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    return storage.load_data('scraper_state', {})
 
 def save_scraper_state(state):
     """保存爬虫状态"""
-    try:
-        with open(SCRAPER_STATE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error saving scraper state: {e}")
+    storage.save_data('scraper_state', state)
 
 def update_msmtp_config(email_config):
-    """动态更新 msmtp 配置文件"""
+    """动态更新 msmtp 配置文件 (仅在容器内文件系统有效，PaaS通常是临时文件，重启需重写)"""
     conf = f"""defaults
 auth           on
 tls            on
@@ -145,9 +115,10 @@ async def send_pushplus(token, title, content):
                 print("Pushplus notification sent successfully.")
 
 # --- 安全发送核心逻辑 ---
-async def safe_send_message(client, chat_id, message, action_desc="Message"):
+async def safe_send_message(client, chat_id, message, reply_to=None, action_desc="Message"):
     """
     包装 client.send_message，加入随机延时和错误重试逻辑。
+    支持 reply_to 参数。
     """
     random_delay = random.uniform(3, 10)
     print(f"[Safety] {action_desc}: Sleeping for {random_delay:.2f}s to mimic human behavior...")
@@ -155,7 +126,7 @@ async def safe_send_message(client, chat_id, message, action_desc="Message"):
 
     while True:
         try:
-            await client.send_message(chat_id, message)
+            await client.send_message(chat_id, message, reply_to=reply_to)
             print(f"[Safety] {action_desc} sent successfully to {chat_id}.")
             break
         except FloodWaitError as e:
@@ -167,7 +138,7 @@ async def safe_send_message(client, chat_id, message, action_desc="Message"):
             print(f"[Safety] Unexpected error sending {action_desc} to {chat_id}: {e}")
             break
 
-# --- ★★★ 新增：Telegram Bot API 辅助函数 ★★★ ---
+# --- Bot API 辅助函数 ---
 async def bot_api_request(token, method, data):
     """通用 Bot API 请求函数"""
     url = f"https://api.telegram.org/bot{token}/{method}"
@@ -196,7 +167,6 @@ async def execute_auto_delete(token, chat_id, message_id, delay):
 async def execute_forward(token, from_chat_id, to_chat_id, message_id):
     """执行消息转发任务 (使用 copyMessage)"""
     print(f"[Forward] Copying message {message_id} from {from_chat_id} to {to_chat_id} via Bot...")
-    # 使用 copyMessage 可以在不显示“转发自”的情况下复制内容
     await bot_api_request(token, 'copyMessage', {
         'chat_id': to_chat_id,
         'from_chat_id': from_chat_id,
@@ -223,11 +193,11 @@ def get_pushplus_token(config, pushplus_id):
                 return pushplus_notifier.get('token')
     return None
 
-async def send_delayed_reply(client, chat_id, message, delay=5):
+async def send_delayed_reply(client, chat_id, message, reply_to=None, delay=5):
     """延迟发送回复"""
     if delay > 0:
         await asyncio.sleep(delay)
-    await safe_send_message(client, chat_id, message, action_desc=f"Auto-Reply (init-delay {delay}s)")
+    await safe_send_message(client, chat_id, message, reply_to=reply_to, action_desc=f"Auto-Reply (init-delay {delay}s)")
 
 # --- 核心消息处理逻辑 ---
 async def process_notifications(config, notifiers_list, subject, body):
@@ -261,13 +231,11 @@ async def handle_message(event):
     message_text = event.message.text or ""
     client = event.client
 
-    # --- 1. ★★★ 新增功能：自动删除消息 ★★★ ---
-    # 检查是否有针对此群组的自动删除规则
+    # --- 1. 自动删除消息 ---
     auto_delete_rules = config.get('auto_delete_rules', [])
     for rule in auto_delete_rules:
         if not rule.get('enabled', True):
             continue
-        # 匹配群组ID (支持多个ID，这里简化为匹配配置中的 group_id)
         rule_group_id = str(rule.get('group_id', ''))
         
         if rule_group_id == chat_id:
@@ -275,13 +243,11 @@ async def handle_message(event):
                 delay = int(rule.get('delay', 60))
                 token = rule.get('bot_token')
                 if token:
-                    # 使用 asyncio.create_task 非阻塞地执行
                     asyncio.create_task(execute_auto_delete(token, chat_id, event.id, delay))
             except Exception as e:
                 print(f"[Auto-Delete] Error scheduling delete: {e}")
 
-    # --- 2. ★★★ 新增功能：消息转发 ★★★ ---
-    # 检查是否有针对此群组的转发规则
+    # --- 2. 消息转发 ---
     forward_rules = config.get('forward_rules', [])
     for rule in forward_rules:
         if not rule.get('enabled', True):
@@ -294,14 +260,14 @@ async def handle_message(event):
             if target_id and token:
                 asyncio.create_task(execute_forward(token, chat_id, target_id, event.id))
 
-    # --- 3. 原有功能：邮件/推送通知监听 ---
+    # --- 3. 邮件/推送通知监听 ---
     group = next((g for g in config.get('groups', []) if g.get('id') == chat_id), None)
     if not group:
         return
 
     sender = await event.message.get_sender()
     
-    # --- 修复逻辑开始 ---
+    # --- 修复逻辑：兼容频道 (Channel) 发送者信息 ---
     sender_info = "Unknown Sender"
     if sender:
         # 如果是用户 (User)，有 first_name
@@ -319,7 +285,6 @@ async def handle_message(event):
         else:
             sender_info = "Unknown Entity"
     # --- 修复逻辑结束 ---
-    
     
     group_name = group.get('name', 'Unknown Group')
     subject = f"【TG消息】{group_name}"
@@ -341,7 +306,8 @@ async def handle_message(event):
                     delay_seconds = 5
                 
                 print(f"Keyword matched '{keyword_rule.get('word')}'. Scheduling reply in {delay_seconds}s...")
-                asyncio.create_task(send_delayed_reply(client, event.chat_id, reply_content, delay_seconds))
+                # 传入 event.id 以进行引用回复
+                asyncio.create_task(send_delayed_reply(client, event.chat_id, reply_content, reply_to=event.id, delay=delay_seconds))
 
     if not keyword_matched:
         notifiers_to_trigger.update(group.get('default_notifiers', []))
@@ -384,31 +350,23 @@ async def scraper_task_worker():
                                     html = await resp.text()
                                     soup = BeautifulSoup(html, 'html.parser')
                                     
-                                    # 提取所有消息文本div
                                     msgs = soup.select('.tgme_widget_message_text')
                                     
                                     if msgs:
-                                        # 获取最新一条消息
                                         latest_msg_html = msgs[-1]
-                                        # 提取纯文本
                                         latest_text = latest_msg_html.get_text(separator='\n').strip()
                                         
-                                        # 简单的去重机制：计算 hash
                                         msg_hash = hashlib.md5(latest_text.encode('utf-8')).hexdigest()
                                         last_hash = scraper_state.get(username)
                                         
                                         if msg_hash != last_hash:
-                                            # 发现新消息！
                                             print(f"[Scraper] New message found in @{username}")
                                             
-                                            # 更新状态
                                             scraper_state[username] = msg_hash
                                             save_scraper_state(scraper_state)
                                             
-                                            # 触发通知
                                             notifiers = channel.get('notifiers', [])
                                             
-                                            # 使用自定义名称或默认用户名
                                             display_name = channel.get('name')
                                             if not display_name:
                                                 display_name = f"@{username}"
@@ -418,7 +376,6 @@ async def scraper_task_worker():
                                             
                                             await process_notifications(config, notifiers, subject, body)
                                     else:
-                                        # 页面解析不到消息（可能是空频道或结构变了）
                                         pass
                                 else:
                                     print(f"[Scraper] Failed to fetch {url}, status: {resp.status}")
@@ -426,10 +383,8 @@ async def scraper_task_worker():
                     except Exception as e:
                         print(f"[Scraper] Error scraping {username}: {e}")
                     
-                    # 每个频道之间随机休息几秒
                     await asyncio.sleep(random.uniform(2, 5))
             
-            # 动态读取轮询频率
             interval = 60
             if config:
                 try:
@@ -447,9 +402,7 @@ async def scraper_task_worker():
 
 # --- 定时任务处理逻辑 (依赖客户端) ---
 async def scheduled_task_worker(client):
-    """
-    后台任务：每分钟检查定时任务。
-    """
+    """后台任务：每分钟检查定时任务。"""
     print("Scheduled task worker started.")
     daily_random_targets = {}
     last_check_minute = None
@@ -511,7 +464,6 @@ async def scheduled_task_worker(client):
                         
                         if now >= target_dt:
                             try:
-                                # ★ 修改点：改为使用安全发送函数 ★
                                 entity = int(target) if target.lstrip('-').isdigit() else target
                                 await safe_send_message(client, entity, msg, action_desc=f"Scheduled Task {idx}")
                                 
@@ -545,8 +497,8 @@ async def main():
     api_id = os.getenv('API_ID')
     api_hash = os.getenv('API_HASH')
     
-    # 检查是否存在 Session 文件
-    session_exists = os.path.exists(SESSION_NAME)
+    # 尝试从存储层加载 Session String
+    saved_session_string = storage.load_data('session')
 
     # 情况 A: 环境变量缺失
     if not api_id or not api_hash:
@@ -555,29 +507,32 @@ async def main():
             await asyncio.sleep(3600)
         return
 
-    # 情况 B: 有 API 配置，但没有 Session 文件 (无法交互登录)
-    if not session_exists:
-        print("----------------------------------------------------------------")
-        print(f"Notice: Session file not found at {SESSION_NAME}")
-        print("Interactive login is not supported in this environment.")
-        print(">> The Telegram Client (Listen/Forward/Schedule) will be SKIPPED.")
-        print(">> The Web Scraper (Anonymous Subscription) is RUNNING.")
-        print("----------------------------------------------------------------")
-        while True:
-            await asyncio.sleep(3600)
-        return
+    # 情况 B: Client 初始化 (使用 StringSession)
+    if not saved_session_string:
+        print("Notice: No saved session found. Initializing new login (StringSession)...")
+        # 没有 Session 字符串，初始化为空，启动后需扫码
+        client = TelegramClient(StringSession(), int(api_id), api_hash)
+    else:
+        print("Found saved session in storage. Logging in...")
+        # 从字符串恢复 Session
+        client = TelegramClient(StringSession(saved_session_string), int(api_id), api_hash)
 
-    # 情况 C: 有 Session 文件，正常启动客户端
     try:
-        api_id = int(api_id)
-        client = TelegramClient(SESSION_NAME, api_id, api_hash)
-        
         @client.on(events.NewMessage)
         async def event_handler(event):
+            # 调用 handle_message
             await handle_message(event)
 
         print("Attempting to connect Telegram client...")
         await client.start()
+        
+        # 登录成功后，获取最新的 Session String 并保存到存储
+        # 这样下次重启容器（尤其是 PaaS 上）就不会丢失登录状态了
+        new_session_string = client.session.save()
+        if new_session_string != saved_session_string:
+            print("Session changed. Saving new session string to storage...")
+            storage.save_data('session', new_session_string)
+        
         print("Telegram client started successfully.")
         
         # 启动定时任务 (依赖 Client)
@@ -588,15 +543,10 @@ async def main():
     except Exception as e:
         print(f"Telegram client error: {e}")
         print("Client crashed or failed to start. Keeping process alive for Web Scraper...")
-        # 如果客户端崩溃，保持主进程存活以运行爬虫
         while True:
             await asyncio.sleep(60)
 
 if __name__ == '__main__':
-    # 确保持久化目录存在
-    if not os.path.exists(SESSION_DIR):
-        os.makedirs(SESSION_DIR)
-        
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
