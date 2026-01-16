@@ -30,6 +30,23 @@ FILES = {
     'session': os.path.join(DATA_DIR, 'session.string') # 本地模式下把session string存文件方便迁移
 }
 
+# SQLite session 文件可能的路径（Telethon 默认格式）
+# 支持多个位置：优先 session_data 子目录，其次 data 根目录
+SESSION_FILE_PATHS = [
+    os.path.join(DATA_DIR, 'session_data', 'telegram.session'),  # 子目录
+    os.path.join(DATA_DIR, 'telegram.session'),                   # 根目录
+]
+
+def get_session_file_path():
+    """
+    检查 SQLite session 文件是否存在，存在则返回路径，否则返回 None
+    支持的位置: /app/data/session_data/telegram.session 或 /app/data/telegram.session
+    """
+    for path in SESSION_FILE_PATHS:
+        if os.path.exists(path):
+            return path
+    return None
+
 def get_db_connection():
     return pymysql.connect(
         host=DB_HOST, port=DB_PORT, user=DB_USER, password=DB_PASS,

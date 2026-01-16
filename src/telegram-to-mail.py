@@ -573,9 +573,6 @@ async def main():
     api_id = os.getenv('API_ID')
     api_hash = os.getenv('API_HASH')
     
-    # 尝试从存储层加载 Session String
-    saved_session_string = storage.load_data('session')
-
     # 情况 A: 环境变量缺失
     if not api_id or not api_hash:
         print("Warning: API_ID/HASH not set. Telegram Client mode disabled. Only Web Scraper will work.")
@@ -583,15 +580,26 @@ async def main():
             await asyncio.sleep(3600)
         return
 
-    # 情况 B: Client 初始化 (使用 StringSession)
-    if not saved_session_string:
-        print("Notice: No saved session found. Initializing new login (StringSession)...")
-        # 没有 Session 字符串，初始化为空，启动后需扫码
-        client = TelegramClient(StringSession(), int(api_id), api_hash)
-    else:
-        print("Found saved session in storage. Logging in...")
+    # 情况 B: Client 初始化 (支持多种 Session 格式)
+    # 优先级: 1. SQLite文件(telegram.session) > 2. StringSession字符串(session.string)
+    
+    # 检查 SQLite session 文件是否存在
+    session_file_path = storage.get_session_file_path()
+    saved_session_string = storage.load_data('session')
+    
+    if session_file_path:
+        print(f"Found SQLite session file: {session_file_path}. Using file-based session...")
+        # 使用 SQLite 文件 session（不带 .session 后缀）
+        session_name = session_file_path.replace('.session', '')
+        client = TelegramClient(session_name, int(api_id), api_hash)
+    elif saved_session_string:
+        print("Found saved StringSession in storage. Logging in...")
         # 从字符串恢复 Session
         client = TelegramClient(StringSession(saved_session_string), int(api_id), api_hash)
+    else:
+        print("Notice: No saved session found. Initializing new login (StringSession)...")
+        # 没有 Session，初始化为空，启动后需扫码
+        client = TelegramClient(StringSession(), int(api_id), api_hash)
 
     try:
         @client.on(events.NewMessage)
