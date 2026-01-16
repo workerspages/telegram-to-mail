@@ -123,6 +123,33 @@
           </div>
           <div id="addGroupKeywords"></div>
         </div>
+
+        <!-- ★★★ 新增：抽奖自动参与设置 ★★★ -->
+        <div class="form-group" style="margin-top:2rem; padding:1rem; background:#f0fdf4; border-radius:12px; border:1px solid #bbf7d0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <label style="margin:0; color:#16a34a; font-weight:600;">🎲 抽奖自动参与</label>
+            <label class="switch-label" id="modalLotteryEnabled" style="margin:0; padding:4px 6px; border:none; background:transparent;">
+              <input type="checkbox" id="modalLotteryEnabledInput">
+              <div class="slider-track"><div class="slider-thumb"></div></div>
+            </label>
+          </div>
+          <div id="modalLotterySettings" style="display:none;">
+            <div class="form-group" style="margin-bottom:0.8rem;">
+              <label style="font-size:0.8rem; color:var(--text-secondary);">触发关键词 (逗号分隔)</label>
+              <input type="text" id="modalLotteryTriggerKeywords" placeholder="抽奖信息, 抽奖ID">
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-secondary);">最小延时(秒)</label>
+                <input type="number" id="modalLotteryDelayMin" value="3" min="1">
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-secondary);">最大延时(秒)</label>
+                <input type="number" id="modalLotteryDelayMax" value="10" min="1">
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="modal-actions">
         <span class="error-msg" id="addGroupError" style="margin-right:auto; color:var(--danger); font-size:0.9rem; align-self:center;"></span>
@@ -272,6 +299,12 @@ function openAddGroupModal(){
     document.getElementById('addGroupModalMask').classList.add('active');
     renderModalDefaultNotify([]);
     renderKeywordRows([]);
+    // 重置抽奖设置
+    document.getElementById('modalLotteryEnabledInput').checked = false;
+    document.getElementById('modalLotterySettings').style.display = 'none';
+    document.getElementById('modalLotteryTriggerKeywords').value = '抽奖信息, 抽奖ID';
+    document.getElementById('modalLotteryDelayMin').value = 3;
+    document.getElementById('modalLotteryDelayMax').value = 10;
 }
 function closeAddGroupModal(){
     document.getElementById('addGroupModalMask').classList.remove('active');
@@ -649,6 +682,34 @@ function renderGroups() {
                             </div>`).join('')}
                     </div>
                 </div>
+
+                <!-- ★★★ 新增：抽奖设置区域 ★★★ -->
+                <div class="form-group" style="margin-top:2rem; padding:1rem; background:#f0fdf4; border-radius:12px; border:1px solid #bbf7d0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <label style="margin:0; color:#16a34a; font-weight:600;">🎲 抽奖自动参与</label>
+                        <label class="switch-label ${group.lottery?.enabled ? 'checked' : ''}" style="margin:0; padding:4px 6px; border:none; background:transparent;">
+                            <input type="checkbox" ${group.lottery?.enabled ? 'checked' : ''} onchange="updateGroupLotteryEnabled(${idx}, this.checked)">
+                            <div class="slider-track"><div class="slider-thumb"></div></div>
+                        </label>
+                    </div>
+                    <div id="group-${idx}-lottery" style="display:${group.lottery?.enabled ? 'block' : 'none'};">
+                        <div class="form-group" style="margin-bottom:0.8rem;">
+                            <label style="font-size:0.8rem; color:var(--text-secondary);">触发关键词 (逗号分隔)</label>
+                            <input type="text" value="${(group.lottery?.trigger_keywords || ['抽奖信息', '抽奖ID']).join(', ')}" onchange="updateGroupLotteryKeywords(${idx}, this.value)">
+                        </div>
+                        <div style="display:flex; gap:0.5rem;">
+                            <div style="flex:1;">
+                                <label style="font-size:0.8rem; color:var(--text-secondary);">最小延时(秒)</label>
+                                <input type="number" value="${group.lottery?.reply_delay_min || 3}" min="1" onchange="updateGroupLotteryDelay(${idx}, 'min', this.value)">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:0.8rem; color:var(--text-secondary);">最大延时(秒)</label>
+                                <input type="number" value="${group.lottery?.reply_delay_max || 10}" min="1" onchange="updateGroupLotteryDelay(${idx}, 'max', this.value)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>`).join('');
 }
@@ -680,6 +741,32 @@ async function deleteGroup(e, idx) {
         configData.groups.splice(idx, 1);
         if(await saveConfigToServer()) renderGroups();
     }
+}
+
+// ★★★ 新增：抽奖设置相关函数 ★★★
+async function updateGroupLotteryEnabled(gId, enabled) {
+    if (!configData.groups[gId].lottery) {
+        configData.groups[gId].lottery = { enabled: false, trigger_keywords: ['抽奖信息', '抽奖ID'], reply_delay_min: 3, reply_delay_max: 10 };
+    }
+    configData.groups[gId].lottery.enabled = enabled;
+    await saveConfigToServer();
+    renderGroups();
+}
+
+async function updateGroupLotteryKeywords(gId, value) {
+    if (!configData.groups[gId].lottery) return;
+    configData.groups[gId].lottery.trigger_keywords = value.split(',').map(s => s.trim()).filter(s => s);
+    await saveConfigToServer();
+}
+
+async function updateGroupLotteryDelay(gId, type, value) {
+    if (!configData.groups[gId].lottery) return;
+    if (type === 'min') {
+        configData.groups[gId].lottery.reply_delay_min = parseInt(value) || 3;
+    } else {
+        configData.groups[gId].lottery.reply_delay_max = parseInt(value) || 10;
+    }
+    await saveConfigToServer();
 }
 
 let addGroupKeywords = [];
@@ -745,11 +832,23 @@ document.getElementById('addGroupForm').onsubmit = async function(e){
         kw.notifiers = Array.from(document.querySelectorAll(`#modal-kw-${i} input:checked`)).map(el=>el.value);
     });
   
+    // 处理抽奖设置
+    let lotteryConfig = null;
+    if (document.getElementById('modalLotteryEnabledInput').checked) {
+        lotteryConfig = {
+            enabled: true,
+            trigger_keywords: document.getElementById('modalLotteryTriggerKeywords').value.split(',').map(s => s.trim()).filter(s => s),
+            reply_delay_min: parseInt(document.getElementById('modalLotteryDelayMin').value) || 3,
+            reply_delay_max: parseInt(document.getElementById('modalLotteryDelayMax').value) || 10
+        };
+    }
+
     configData.groups.push({
         id: gid,
         name: document.getElementById('modalGroupName').value.trim(),
         default_notifiers: Array.from(document.querySelectorAll('#modalDefaultNotifyContainer input:checked')).map(el=>el.value),
-        keywords: JSON.parse(JSON.stringify(addGroupKeywords))
+        keywords: JSON.parse(JSON.stringify(addGroupKeywords)),
+        lottery: lotteryConfig
     });
   
     if(await saveConfigToServer()) {
@@ -773,6 +872,12 @@ document.getElementById('notifierForm').onsubmit = async function(e){
 function logout(){ location.href="/logout"; }
 
 renderGroups();
+
+// 抽奖开关事件监听
+document.getElementById('modalLotteryEnabledInput').addEventListener('change', function() {
+    document.getElementById('modalLotterySettings').style.display = this.checked ? 'block' : 'none';
+    document.getElementById('modalLotteryEnabled').classList.toggle('checked', this.checked);
+});
 </script>
 </body>
 </html>
