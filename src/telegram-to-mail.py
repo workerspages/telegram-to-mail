@@ -201,32 +201,47 @@ async def send_delayed_reply(client, chat_id, message, reply_to=None, delay=5):
     await safe_send_message(client, chat_id, message, reply_to=reply_to, action_desc=f"Auto-Reply (init-delay {delay}s)")
 
 # --- 抽奖自动参与功能 ---
-def extract_lottery_keyword(message_text):
+# 默认支持的关键词字段名列表
+DEFAULT_KEYWORD_FIELDS = ['参与关键词', '关键词', '抽奖词', '抽奖关键词', '参与口令', '口令']
+
+def extract_lottery_keyword(message_text, keyword_fields=None):
     """
     从抽奖消息中提取参与关键词。
     支持格式:
-    1. "参与关键词: 「xxx」" 或 "参与关键词：「xxx」" (优先匹配)
-    2. "关键词: 数字/数字=百分比" 例如 "支持老王: 3/36=8.33%" (备选)
+    1. "字段名: 「xxx」" 或 "字段名：「xxx」" (优先匹配，带括号)
+    2. "字段名: xxx" (备选，无括号取到行尾)
+    3. "关键词: 数字/数字=百分比" 例如 "支持老王: 3/36=8.33%" (最后备选)
+    
+    参数:
+    - message_text: 消息文本
+    - keyword_fields: 自定义关键词字段名列表，如 ['参与关键词', '关键词', '抽奖词']
+    
     返回第一个匹配的关键词，如果没有匹配则返回 None。
     """
-    # 优先匹配 "参与关键词: 「xxx」" 格式（中英文冒号和各种括号）
-    # 支持「」、【】、[]、'' 等括号形式
-    bracket_pattern = r'参与关键词[：:]\s*[「【\[\'\"](.+?)[」】\]\'\"]'
+    if keyword_fields is None:
+        keyword_fields = DEFAULT_KEYWORD_FIELDS
+    
+    # 构建字段名的正则模式（使用 | 连接多个字段名）
+    fields_pattern = '|'.join(re.escape(field) for field in keyword_fields)
+    
+    # 优先匹配带括号格式：「」、【】、[]、"" 等
+    bracket_pattern = rf'(?:{fields_pattern})[：:]\s*[「【\[\'\"\『](.+?)[」】\]\'\"\』]'
     bracket_match = re.search(bracket_pattern, message_text)
     if bracket_match:
         keyword = bracket_match.group(1).strip()
         print(f"[Lottery] Extracted participation keyword (bracket format): '{keyword}'")
         return keyword
     
-    # 备选：匹配 "参与关键词: xxx" 格式（无括号，取到行尾）
-    plain_pattern = r'参与关键词[：:]\s*(.+?)$'
+    # 备选：无括号格式，取到行尾
+    plain_pattern = rf'(?:{fields_pattern})[：:]\s*(.+?)$'
     plain_match = re.search(plain_pattern, message_text, re.MULTILINE)
     if plain_match:
         keyword = plain_match.group(1).strip()
         # 移除可能的尾随括号
-        keyword = re.sub(r'^[「【\[\'\"]|[」】\]\'\"]$', '', keyword)
-        print(f"[Lottery] Extracted participation keyword (plain format): '{keyword}'")
-        return keyword
+        keyword = re.sub(r'^[「【\[\'\"\『]|[」】\]\'\"\』]$', '', keyword)
+        if keyword:
+            print(f"[Lottery] Extracted participation keyword (plain format): '{keyword}'")
+            return keyword
     
     # 最后备选：匹配 "关键词: 数字/数字=百分比" 格式
     stats_pattern = r'^([^:\n]+?):\s*\d+/\d+=\d+\.?\d*%'
