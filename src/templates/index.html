@@ -355,7 +355,22 @@ function renderAutoDeleteList() {
         return;
     }
     container.innerHTML = configData.auto_delete_rules.map((rule, idx) => `
-        <div class="list-card">
+        <div class="list-card ${rule.enabled === false ? 'disabled-item' : ''}">
+            <div style="display: flex; justify-content:space-between; align-items:center; margin-bottom: 0.8rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span style="font-weight:600;">规则 #${idx + 1}</span>
+                    ${rule.enabled === false ? '<span style="padding:2px 6px; background:#fef2f2; color:#dc2626; border-radius:4px; font-size:0.7rem;">已暂停</span>' : ''}
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <label class="switch-label ${rule.enabled !== false ? 'checked' : ''}" style="margin:0; padding:4px 6px; border:none; background:transparent;">
+                        <input type="checkbox" ${rule.enabled !== false ? 'checked' : ''} onchange="toggleAutoDeleteEnabled(${idx}, this.checked)">
+                        <div class="slider-track"><div class="slider-thumb"></div></div>
+                    </label>
+                    <button type="button" class="btn-icon btn-icon-danger" onclick="removeAutoDelete(${idx})" title="删除" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
             <div style="display: flex; gap:0.5rem; margin-bottom: 0.8rem;">
                 <div style="flex:1;">
                     <label style="font-size:0.8rem; color:var(--text-secondary);">群组 ID (Group ID)</label>
@@ -366,14 +381,9 @@ function renderAutoDeleteList() {
                     <input type="number" value="${rule.delay || 60}" placeholder="60" onchange="updateAutoDelete(${idx}, 'delay', this.value)" style="text-align:center;">
                 </div>
             </div>
-            <div style="margin-bottom:0.8rem;">
+            <div>
                  <label style="font-size:0.8rem; color:var(--text-secondary);">Telegram Bot Token</label>
                  <input type="text" value="${rule.bot_token || ''}" placeholder="123456:ABC-DEF..." onchange="updateAutoDelete(${idx}, 'bot_token', this.value)">
-            </div>
-            <div style="text-align:right;">
-                <button type="button" class="btn-icon btn-icon-danger" onclick="removeAutoDelete(${idx})" title="删除" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
             </div>
         </div>
     `).join('');
@@ -401,6 +411,11 @@ async function updateAutoDelete(idx, key, value) {
     }
 }
 
+async function toggleAutoDeleteEnabled(idx, enabled) {
+    configData.auto_delete_rules[idx].enabled = enabled;
+    if (await saveConfigToServer()) renderAutoDeleteList();
+}
+
 /* --- ★★★ 渲染逻辑：消息转发 (Forward) ★★★ --- */
 function renderForwardList() {
     const container = document.getElementById('forwardList');
@@ -409,7 +424,22 @@ function renderForwardList() {
         return;
     }
     container.innerHTML = configData.forward_rules.map((rule, idx) => `
-        <div class="list-card">
+        <div class="list-card ${rule.enabled === false ? 'disabled-item' : ''}">
+            <div style="display: flex; justify-content:space-between; align-items:center; margin-bottom: 0.8rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span style="font-weight:600;">规则 #${idx + 1}</span>
+                    ${rule.enabled === false ? '<span style="padding:2px 6px; background:#fef2f2; color:#dc2626; border-radius:4px; font-size:0.7rem;">已暂停</span>' : ''}
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <label class="switch-label ${rule.enabled !== false ? 'checked' : ''}" style="margin:0; padding:4px 6px; border:none; background:transparent;">
+                        <input type="checkbox" ${rule.enabled !== false ? 'checked' : ''} onchange="toggleForwardEnabled(${idx}, this.checked)">
+                        <div class="slider-track"><div class="slider-thumb"></div></div>
+                    </label>
+                    <button type="button" class="btn-icon btn-icon-danger" onclick="removeForward(${idx})" title="删除" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
             <div style="display: flex; gap:0.5rem; margin-bottom: 0.8rem;">
                 <div style="flex:1;">
                     <label style="font-size:0.8rem; color:var(--text-secondary);">源群组 ID</label>
@@ -420,14 +450,9 @@ function renderForwardList() {
                     <input type="text" value="${rule.target_id || ''}" placeholder="转到哪..." onchange="updateForward(${idx}, 'target_id', this.value)">
                 </div>
             </div>
-            <div style="margin-bottom:0.8rem;">
+            <div>
                  <label style="font-size:0.8rem; color:var(--text-secondary);">Telegram Bot Token</label>
                  <input type="text" value="${rule.bot_token || ''}" placeholder="123456:ABC-DEF..." onchange="updateForward(${idx}, 'bot_token', this.value)">
-            </div>
-            <div style="text-align:right;">
-                <button type="button" class="btn-icon btn-icon-danger" onclick="removeForward(${idx})" title="删除" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
             </div>
         </div>
     `).join('');
@@ -455,6 +480,11 @@ async function updateForward(idx, key, value) {
     }
 }
 
+async function toggleForwardEnabled(idx, enabled) {
+    configData.forward_rules[idx].enabled = enabled;
+    if (await saveConfigToServer()) renderForwardList();
+}
+
 
 /* --- 其他原有逻辑 (Schedule/Scraper/Groups/Notifiers) --- */
 function renderScraperList() {
@@ -464,7 +494,22 @@ function renderScraperList() {
         return;
     }
     container.innerHTML = configData.scrape_channels.map((item, idx) => `
-        <div class="list-card">
+        <div class="list-card ${item.enabled === false ? 'disabled-item' : ''}">
+            <div style="display: flex; justify-content:space-between; align-items:center; margin-bottom: 0.8rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span style="font-weight:600;">@${item.username || '未设置'}</span>
+                    ${item.enabled === false ? '<span style="padding:2px 6px; background:#fef2f2; color:#dc2626; border-radius:4px; font-size:0.7rem;">已暂停</span>' : ''}
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <label class="switch-label ${item.enabled !== false ? 'checked' : ''}" style="margin:0; padding:4px 6px; border:none; background:transparent;">
+                        <input type="checkbox" ${item.enabled !== false ? 'checked' : ''} onchange="toggleScraperEnabled(${idx}, this.checked)">
+                        <div class="slider-track"><div class="slider-thumb"></div></div>
+                    </label>
+                    <button type="button" class="btn-icon btn-icon-danger" onclick="removeScraperItem(${idx})" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
             <div style="display: flex; gap: 0.8rem; align-items: flex-start; margin-bottom: 0.8rem;">
                 <div style="flex: 1;">
                     <label style="font-size: 0.8rem; color:var(--text-secondary);">频道用户名 (不含 @)</label>
@@ -475,7 +520,7 @@ function renderScraperList() {
                     <input type="text" value="${item.name || ''}" onchange="updateScraperItem(${idx}, 'name', this.value)">
                 </div>
             </div>
-            <div style="margin-bottom:0.8rem; background: #fff; padding:0.5rem; border-radius:8px; border:1px dashed #e5e7eb;">
+            <div style="background: #fff; padding:0.5rem; border-radius:8px; border:1px dashed #e5e7eb;">
                 <label style="font-size: 0.8rem; color:var(--text-secondary);">通知通道</label>
                 <div class="switch-grid" id="scraper-notify-${idx}">
                     ${getAvailableNotifiers().map(opt => `
@@ -485,11 +530,6 @@ function renderScraperList() {
                             <span class="switch-text">${opt.name}</span>
                         </label>`).join('')}
                 </div>
-            </div>
-            <div style="text-align:right;">
-                <button type="button" class="btn-icon btn-icon-danger" onclick="removeScraperItem(${idx})" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
             </div>
         </div>`).join('');
 }
@@ -514,6 +554,11 @@ async function updateScraperItem(idx, key, value) {
 async function updateScraperNotifier(idx) {
     configData.scrape_channels[idx].notifiers = Array.from(document.querySelectorAll(`#scraper-notify-${idx} input:checked`)).map(el => el.value);
     await saveConfigToServer();
+}
+
+async function toggleScraperEnabled(idx, enabled) {
+    configData.scrape_channels[idx].enabled = enabled;
+    if (await saveConfigToServer()) renderScraperList();
 }
 
 async function updateScraperInterval(val) {
