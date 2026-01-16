@@ -67,6 +67,8 @@ body {
   overflow: hidden; transition: all 0.2s ease;
 }
 .group-card:hover { box-shadow: var(--shadow-md); border-color: #d1d5db; transform: translateY(-1px); }
+.group-card.disabled { opacity: 0.6; background: #f9fafb; }
+.group-card.disabled:hover { transform: none; }
 
 .group-card-header {
   display: flex; align-items: center; padding: 1.25rem 1.5rem;

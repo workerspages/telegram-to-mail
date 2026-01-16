@@ -627,10 +627,14 @@ function renderGroups() {
         return;
     }
     container.innerHTML = configData.groups.map((group, idx) => `
-        <div class="group-card" id="group-card-${idx}">
+        <div class="group-card ${group.enabled === false ? 'disabled' : ''}" id="group-card-${idx}">
             <div class="group-card-header" onclick="toggleGroup(${idx})">
                 <div class="toggle-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
-                <div class="group-title">${group.name || '未命名'}<span class="id-badge">${group.id}</span></div>
+                <div class="group-title">${group.name || '未命名'}<span class="id-badge">${group.id}</span>${group.enabled === false ? '<span style="margin-left:8px; padding:2px 8px; background:#fef2f2; color:#dc2626; border-radius:4px; font-size:0.75rem;">已暂停</span>' : ''}</div>
+                <label class="switch-label ${group.enabled !== false ? 'checked' : ''}" style="margin:0 8px 0 auto; padding:4px 6px; border:none; background:transparent;" onclick="event.stopPropagation()">
+                    <input type="checkbox" ${group.enabled !== false ? 'checked' : ''} onchange="toggleGroupEnabled(${idx}, this.checked)">
+                    <div class="slider-track"><div class="slider-thumb"></div></div>
+                </label>
                 <button class="btn-icon btn-icon-danger" onclick="deleteGroup(event, ${idx})" title="删除"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
             </div>
             <div class="group-card-body">
@@ -712,6 +716,11 @@ function renderGroups() {
 
             </div>
         </div>`).join('');
+}
+
+async function toggleGroupEnabled(gId, enabled) {
+    configData.groups[gId].enabled = enabled;
+    if (await saveConfigToServer()) renderGroups();
 }
 
 async function updateGroupNotifier(gId) {

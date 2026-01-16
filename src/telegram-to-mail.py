@@ -331,6 +331,10 @@ async def handle_message(event):
     group = next((g for g in config.get('groups', []) if g.get('id') == chat_id), None)
     if not group:
         return
+    
+    # 检查群组是否被禁用
+    if not group.get('enabled', True):
+        return
 
     # --- 4. 抽奖自动参与 ---
     lottery_config = group.get('lottery')
