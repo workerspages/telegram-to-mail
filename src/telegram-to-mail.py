@@ -274,8 +274,11 @@ async def handle_lottery_auto_reply(client, event, lottery_config, message_text)
     
     print(f"[Lottery] Lottery message detected in chat {event.chat_id}")
     
+    # 从配置获取自定义提取字段名（如果未配置则使用默认值）
+    extract_fields = lottery_config.get('extract_fields')
+    
     # 提取参与关键词
-    participation_keyword = extract_lottery_keyword(message_text)
+    participation_keyword = extract_lottery_keyword(message_text, extract_fields)
     if not participation_keyword:
         print(f"[Lottery] Could not extract participation keyword from message")
         return False

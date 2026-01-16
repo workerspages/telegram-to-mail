@@ -140,6 +140,10 @@
               <label style="font-size:0.8rem; color:var(--text-secondary);">触发关键词 (逗号分隔)</label>
               <input type="text" id="modalLotteryTriggerKeywords" placeholder="抽奖信息, 抽奖ID">
             </div>
+            <div class="form-group" style="margin-bottom:0.8rem;">
+              <label style="font-size:0.8rem; color:var(--text-secondary);">提取字段名 (逗号分隔，用于匹配抽奖消息中的关键词字段)</label>
+              <input type="text" id="modalLotteryExtractFields" placeholder="参与关键词, 关键词, 抽奖词, 参与口令">
+            </div>
             <div style="display:flex; gap:0.5rem;">
               <div style="flex:1;">
                 <label style="font-size:0.8rem; color:var(--text-secondary);">最小延时(秒)</label>
@@ -307,6 +311,7 @@ function openAddGroupModal(){
     document.getElementById('modalLotteryEnabledInput').checked = false;
     document.getElementById('modalLotterySettings').style.display = 'none';
     document.getElementById('modalLotteryTriggerKeywords').value = '抽奖信息, 抽奖ID';
+    document.getElementById('modalLotteryExtractFields').value = '参与关键词, 关键词, 抽奖词, 参与口令';
     document.getElementById('modalLotteryDelayMin').value = 3;
     document.getElementById('modalLotteryDelayMax').value = 10;
 }
@@ -764,6 +769,10 @@ function renderGroups() {
                             <label style="font-size:0.8rem; color:var(--text-secondary);">触发关键词 (逗号分隔)</label>
                             <input type="text" value="${(group.lottery?.trigger_keywords || ['抽奖信息', '抽奖ID']).join(', ')}" onchange="updateGroupLotteryKeywords(${idx}, this.value)">
                         </div>
+                        <div class="form-group" style="margin-bottom:0.8rem;">
+                            <label style="font-size:0.8rem; color:var(--text-secondary);">提取字段名 (逗号分隔，匹配如"参与关键词: xxx")</label>
+                            <input type="text" value="${(group.lottery?.extract_fields || ['参与关键词', '关键词', '抽奖词', '参与口令']).join(', ')}" onchange="updateGroupLotteryExtractFields(${idx}, this.value)">
+                        </div>
                         <div style="display:flex; gap:0.5rem;">
                             <div style="flex:1;">
                                 <label style="font-size:0.8rem; color:var(--text-secondary);">最小延时(秒)</label>
@@ -841,6 +850,12 @@ async function updateGroupLotteryDelay(gId, type, value) {
     await saveConfigToServer();
 }
 
+async function updateGroupLotteryExtractFields(gId, value) {
+    if (!configData.groups[gId].lottery) return;
+    configData.groups[gId].lottery.extract_fields = value.split(',').map(s => s.trim()).filter(s => s);
+    await saveConfigToServer();
+}
+
 let addGroupKeywords = [];
 function renderKeywordRows(kws){
     addGroupKeywords = kws;
@@ -910,6 +925,7 @@ document.getElementById('addGroupForm').onsubmit = async function(e){
         lotteryConfig = {
             enabled: true,
             trigger_keywords: document.getElementById('modalLotteryTriggerKeywords').value.split(',').map(s => s.trim()).filter(s => s),
+            extract_fields: document.getElementById('modalLotteryExtractFields').value.split(',').map(s => s.trim()).filter(s => s),
             reply_delay_min: parseInt(document.getElementById('modalLotteryDelayMin').value) || 3,
             reply_delay_max: parseInt(document.getElementById('modalLotteryDelayMax').value) || 10
         };
