@@ -37,6 +37,8 @@ python generate_session.py
 
 同时控制台会输出 **Base64 编码的 SESSION_STRING**，用于环境变量。
 
+将现有的 telegram.session 文件转换为 Base64 编码的 SESSION_STRING  [使用此脚本](/tools/convert_session.py)
+
 ## 部署方式
 
 根据你的部署平台，选择以下任一方式：
