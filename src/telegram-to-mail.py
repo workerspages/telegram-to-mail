@@ -204,21 +204,40 @@ async def send_delayed_reply(client, chat_id, message, reply_to=None, delay=5):
 def extract_lottery_keyword(message_text):
     """
     从抽奖消息中提取参与关键词。
-    匹配格式: "关键词: 数字/数字=百分比" 例如 "支持老王！VPS8送100台小鸡第五波: 3/36=8.33%"
+    支持格式:
+    1. "参与关键词: 「xxx」" 或 "参与关键词：「xxx」" (优先匹配)
+    2. "关键词: 数字/数字=百分比" 例如 "支持老王: 3/36=8.33%" (备选)
     返回第一个匹配的关键词，如果没有匹配则返回 None。
     """
-    # 匹配 "关键词: 数字/数字=百分比" 格式
-    pattern = r'^([^:\n]+?):\s*\d+/\d+=\d+\.?\d*%'
-    matches = re.findall(pattern, message_text, re.MULTILINE)
+    # 优先匹配 "参与关键词: 「xxx」" 格式（中英文冒号和各种括号）
+    # 支持「」、【】、[]、'' 等括号形式
+    bracket_pattern = r'参与关键词[：:]\s*[「【\[\'\"](.+?)[」】\]\'\"]'
+    bracket_match = re.search(bracket_pattern, message_text)
+    if bracket_match:
+        keyword = bracket_match.group(1).strip()
+        print(f"[Lottery] Extracted participation keyword (bracket format): '{keyword}'")
+        return keyword
+    
+    # 备选：匹配 "参与关键词: xxx" 格式（无括号，取到行尾）
+    plain_pattern = r'参与关键词[：:]\s*(.+?)$'
+    plain_match = re.search(plain_pattern, message_text, re.MULTILINE)
+    if plain_match:
+        keyword = plain_match.group(1).strip()
+        # 移除可能的尾随括号
+        keyword = re.sub(r'^[「【\[\'\"]|[」】\]\'\"]$', '', keyword)
+        print(f"[Lottery] Extracted participation keyword (plain format): '{keyword}'")
+        return keyword
+    
+    # 最后备选：匹配 "关键词: 数字/数字=百分比" 格式
+    stats_pattern = r'^([^:\n]+?):\s*\d+/\d+=\d+\.?\d*%'
+    matches = re.findall(stats_pattern, message_text, re.MULTILINE)
     
     if matches:
-        # 返回第一个不是明显系统字段的关键词
         system_keywords = ['抽奖ID', '发起人', '参与人数', '截止日期', '中奖概率', '抽奖信息']
         for match in matches:
             keyword = match.strip()
-            # 跳过系统字段
             if not any(sys_kw in keyword for sys_kw in system_keywords):
-                print(f"[Lottery] Extracted participation keyword: '{keyword}'")
+                print(f"[Lottery] Extracted participation keyword (stats format): '{keyword}'")
                 return keyword
     
     return None
