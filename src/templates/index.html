@@ -431,7 +431,7 @@ function renderForwardList() {
         <div class="list-card ${rule.enabled === false ? 'disabled-item' : ''}">
             <div style="display: flex; justify-content:space-between; align-items:center; margin-bottom: 0.8rem;">
                 <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <span style="font-weight:600;">规则 #${idx + 1}</span>
+                    <span style="font-weight:600;">${rule.source_name || rule.target_name ? (rule.source_name || '源') + ' → ' + (rule.target_name || '目标') : '规则 #' + (idx + 1)}</span>
                     ${rule.enabled === false ? '<span style="padding:2px 6px; background:#fef2f2; color:#dc2626; border-radius:4px; font-size:0.7rem;">已暂停</span>' : ''}
                 </div>
                 <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -442,6 +442,16 @@ function renderForwardList() {
                     <button type="button" class="btn-icon btn-icon-danger" onclick="removeForward(${idx})" title="删除" style="display:inline-flex; border: 1px solid var(--border); border-radius: 10px;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
+                </div>
+            </div>
+            <div style="display: flex; gap:0.5rem; margin-bottom: 0.8rem;">
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem; color:var(--text-secondary);">源群组备注</label>
+                    <input type="text" value="${rule.source_name || ''}" placeholder="如: 技术交流群" onchange="updateForward(${idx}, 'source_name', this.value)">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem; color:var(--text-secondary);">目标群组备注</label>
+                    <input type="text" value="${rule.target_name || ''}" placeholder="如: 备份群" onchange="updateForward(${idx}, 'target_name', this.value)">
                 </div>
             </div>
             <div style="display: flex; gap:0.5rem; margin-bottom: 0.8rem;">
@@ -463,7 +473,7 @@ function renderForwardList() {
 }
 
 async function addForwardItem() {
-    configData.forward_rules.push({ source_id: '', target_id: '', bot_token: '', enabled: true });
+    configData.forward_rules.push({ source_id: '', target_id: '', bot_token: '', enabled: true, source_name: '', target_name: '' });
     if (await saveConfigToServer()) renderForwardList();
 }
 
