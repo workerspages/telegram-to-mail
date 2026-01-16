@@ -4,6 +4,7 @@ import json
 import aiohttp
 import random
 import hashlib
+import re
 from datetime import datetime, time as dt_time
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
@@ -199,6 +200,72 @@ async def send_delayed_reply(client, chat_id, message, reply_to=None, delay=5):
         await asyncio.sleep(delay)
     await safe_send_message(client, chat_id, message, reply_to=reply_to, action_desc=f"Auto-Reply (init-delay {delay}s)")
 
+# --- 抽奖自动参与功能 ---
+def extract_lottery_keyword(message_text):
+    """
+    从抽奖消息中提取参与关键词。
+    匹配格式: "关键词: 数字/数字=百分比" 例如 "支持老王！VPS8送100台小鸡第五波: 3/36=8.33%"
+    返回第一个匹配的关键词，如果没有匹配则返回 None。
+    """
+    # 匹配 "关键词: 数字/数字=百分比" 格式
+    pattern = r'^([^:\n]+?):\s*\d+/\d+=\d+\.?\d*%'
+    matches = re.findall(pattern, message_text, re.MULTILINE)
+    
+    if matches:
+        # 返回第一个不是明显系统字段的关键词
+        system_keywords = ['抽奖ID', '发起人', '参与人数', '截止日期', '中奖概率', '抽奖信息']
+        for match in matches:
+            keyword = match.strip()
+            # 跳过系统字段
+            if not any(sys_kw in keyword for sys_kw in system_keywords):
+                print(f"[Lottery] Extracted participation keyword: '{keyword}'")
+                return keyword
+    
+    return None
+
+async def handle_lottery_auto_reply(client, event, lottery_config, message_text):
+    """
+    处理抽奖消息的自动回复。
+    检测触发关键词 -> 提取参与关键词 -> 随机延时后回复
+    """
+    if not lottery_config or not lottery_config.get('enabled', False):
+        return False
+    
+    trigger_keywords = lottery_config.get('trigger_keywords', ['抽奖信息', '抽奖ID'])
+    
+    # 检查消息是否包含触发关键词
+    is_lottery_message = any(kw in message_text for kw in trigger_keywords)
+    if not is_lottery_message:
+        return False
+    
+    print(f"[Lottery] Lottery message detected in chat {event.chat_id}")
+    
+    # 提取参与关键词
+    participation_keyword = extract_lottery_keyword(message_text)
+    if not participation_keyword:
+        print(f"[Lottery] Could not extract participation keyword from message")
+        return False
+    
+    # 计算随机延时
+    delay_min = lottery_config.get('reply_delay_min', 3)
+    delay_max = lottery_config.get('reply_delay_max', 10)
+    random_delay = random.uniform(delay_min, delay_max)
+    
+    print(f"[Lottery] Will reply with '{participation_keyword}' after {random_delay:.2f}s delay")
+    
+    # 异步发送回复（引用原消息）
+    asyncio.create_task(
+        send_delayed_reply(
+            client, 
+            event.chat_id, 
+            participation_keyword, 
+            reply_to=event.id, 
+            delay=random_delay
+        )
+    )
+    
+    return True
+
 # --- 核心消息处理逻辑 ---
 async def process_notifications(config, notifiers_list, subject, body):
     """处理并发送一组通知"""
@@ -264,6 +331,11 @@ async def handle_message(event):
     group = next((g for g in config.get('groups', []) if g.get('id') == chat_id), None)
     if not group:
         return
+
+    # --- 4. 抽奖自动参与 ---
+    lottery_config = group.get('lottery')
+    if lottery_config:
+        await handle_lottery_auto_reply(client, event, lottery_config, message_text)
 
     sender = await event.message.get_sender()
     
