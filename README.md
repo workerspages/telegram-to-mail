@@ -64,7 +64,7 @@ cd telegram-to-mail
 version: '3.8'
 services:
   telegram-to-mail:
-    image: ghcr.io/workerspages/telegram-to-mail:mariadb
+    image: ghcr.io/workerspages/telegram-to-mail:mariadb-lottery
     container_name: telegram-to-mail
     restart: unless-stopped
     ports:
