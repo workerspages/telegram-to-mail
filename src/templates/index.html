@@ -358,7 +358,7 @@ function renderAutoDeleteList() {
         <div class="list-card ${rule.enabled === false ? 'disabled-item' : ''}">
             <div style="display: flex; justify-content:space-between; align-items:center; margin-bottom: 0.8rem;">
                 <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <span style="font-weight:600;">规则 #${idx + 1}</span>
+                    <span style="font-weight:600;">${rule.name || '规则 #' + (idx + 1)}</span>
                     ${rule.enabled === false ? '<span style="padding:2px 6px; background:#fef2f2; color:#dc2626; border-radius:4px; font-size:0.7rem;">已暂停</span>' : ''}
                 </div>
                 <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -373,13 +373,17 @@ function renderAutoDeleteList() {
             </div>
             <div style="display: flex; gap:0.5rem; margin-bottom: 0.8rem;">
                 <div style="flex:1;">
-                    <label style="font-size:0.8rem; color:var(--text-secondary);">群组 ID (Group ID)</label>
-                    <input type="text" value="${rule.group_id || ''}" placeholder="如: -100xxxx" onchange="updateAutoDelete(${idx}, 'group_id', this.value)">
+                    <label style="font-size:0.8rem; color:var(--text-secondary);">备注名称</label>
+                    <input type="text" value="${rule.name || ''}" placeholder="如: 技术交流群" onchange="updateAutoDelete(${idx}, 'name', this.value)">
                 </div>
                 <div style="width:80px;">
                     <label style="font-size:0.8rem; color:var(--text-secondary);">延迟(秒)</label>
                     <input type="number" value="${rule.delay || 60}" placeholder="60" onchange="updateAutoDelete(${idx}, 'delay', this.value)" style="text-align:center;">
                 </div>
+            </div>
+            <div style="margin-bottom: 0.8rem;">
+                <label style="font-size:0.8rem; color:var(--text-secondary);">群组 ID (Group ID)</label>
+                <input type="text" value="${rule.group_id || ''}" placeholder="如: -100xxxx" onchange="updateAutoDelete(${idx}, 'group_id', this.value)">
             </div>
             <div>
                  <label style="font-size:0.8rem; color:var(--text-secondary);">Telegram Bot Token</label>
@@ -390,7 +394,7 @@ function renderAutoDeleteList() {
 }
 
 async function addAutoDeleteItem() {
-    configData.auto_delete_rules.push({ group_id: '', delay: 60, bot_token: '', enabled: true });
+    configData.auto_delete_rules.push({ group_id: '', delay: 60, bot_token: '', enabled: true, name: '' });
     if (await saveConfigToServer()) renderAutoDeleteList();
 }
 
