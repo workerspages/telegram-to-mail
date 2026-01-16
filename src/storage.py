@@ -14,7 +14,15 @@ DB_NAME = os.getenv('MARIADB_DATABASE', 'telegram_bot')
 USE_DB = all([DB_HOST, DB_USER, DB_PASS])
 
 # 本地文件路径定义
-DATA_DIR = './data' if os.path.exists('./data') else '.'
+# 优先使用 /app/data 目录（Docker 环境）
+# 兼容符号链接方式（entrypoint.sh 创建）和直接访问方式
+if os.path.exists('/app/data'):
+    DATA_DIR = '/app/data'
+elif os.path.exists('./data'):
+    DATA_DIR = './data'
+else:
+    DATA_DIR = '.'
+
 FILES = {
     'config': os.path.join(DATA_DIR, 'config.json'),
     'schedule_state': os.path.join(DATA_DIR, 'schedule_state.json'),
