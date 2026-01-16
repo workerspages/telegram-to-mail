@@ -123,6 +123,41 @@ docker-compose up -d
     *   **登录成功后，Session 字符串会自动加密存入数据库。**
     *   以后的重启或重新部署将自动读取数据库中的 Session，无需再次验证。
 
+
+
+
+
+### ✨ 在本地生成 telegram.sessio 文件的方法
+
+#### **在本地生成 Session 文件**
+1.  在您自己的电脑（Windows/Mac/Linux）上安装 Python 和 Telethon：
+    ```bash
+    pip install telethon
+    ```
+2.  创建一个临时脚本 `get_session.py`：
+    ```python
+    from telethon.sync import TelegramClient
+    api_id = 1234567  # 换成您的 API_ID
+    api_hash = 'xxxxxxxx'  # 换成您的 API_HASH
+    with TelegramClient('telegram', api_id, api_hash) as client:
+        print("登录成功！当前目录下已生成 telegram.session 文件")
+    ```
+3.  运行脚本，输入手机号和验证码。运行结束后，文件夹下会出现一个 `telegram.session` 文件。
+    `cmd` 脚本 `get_session.py` 所在目录执行以下命令：
+    
+    ```
+    python get_session.py
+    ```
+
+
+#### **上传到 Zeabur**
+1.  打开 Zeabur 控制台，找到您的服务。
+2.  进入 **Storage（存储）** 选项卡。
+3.  找到您挂载的 `/app/data` 目录（或者在项目根目录的 `data` 文件夹）。
+4.  将本地生成的 `telegram.session` 上传到 `data/session_data/` 文件夹内（最终路径应为 `/app/data/session_data/telegram.session`）。
+5.  **重启服务**。
+
+
 ---
 
 ## 🔧 功能使用指南
