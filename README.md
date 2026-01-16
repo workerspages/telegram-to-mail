@@ -121,6 +121,7 @@ docker-compose up -d
     *   `WEB_PASSWORD`: admin123
     *   `API_ID`: 12345678          (可选：如果只用爬虫或Bot功能，可不填)
     *   `API_HASH`: xxxxxxxxx       (可选：如果只用爬虫或Bot功能，可不填)
+    *   `SESSION_STRING`: MUJRQU5PVEUuMTA4... (可选：Base64 编码的 TG 登录凭证)
 6.  **首次登录**:
     *   部署后查看容器日志（Logs）。
     *   如果配置了 `API_ID`，程序会提示输入手机号和验证码。
