@@ -108,13 +108,27 @@ def save_data(key, data):
         except Exception as e:
             print(f"[Storage] Save Error ({key}): {e}")
     else:
-        # 文件模式
+        # 文件模式 - 使用原子写入防止并发问题
         file_path = FILES.get(key)
+        temp_path = file_path + '.tmp'
         try:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            # 先写入临时文件
+            with open(temp_path, 'w', encoding='utf-8') as f:
                 if key == 'session':
                     f.write(data)
                 else:
                     json.dump(data, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())  # 确保写入磁盘
+            
+            # 然后原子性地重命名（替换）目标文件
+            os.replace(temp_path, file_path)
         except Exception as e:
             print(f"[Storage] File Write Error ({key}): {e}")
+            # 清理临时文件
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+
