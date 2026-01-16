@@ -57,6 +57,7 @@
       <h2>推送通道设置</h2>
       <button class="close" onclick="closeNotifierModal()">&times;</button>
     </div>
+    <p style="margin:0; padding:0.5rem 1.5rem; font-size:0.8rem; color:var(--text-secondary); background:#f9fafb; border-bottom:1px solid var(--border);">配置接收通知的渠道，支持邮件、Bark 和 Pushplus。</p>
     <form id="notifierForm" style="display:flex; flex-direction:column; height:100%;">
       <div class="modal-body">
         <div style="margin-bottom: 2rem;">
@@ -106,6 +107,7 @@
       <h2>添加新群组</h2>
       <button class="close" onclick="closeAddGroupModal()">&times;</button>
     </div>
+    <p style="margin:0; padding:0.5rem 1.5rem; font-size:0.8rem; color:var(--text-secondary); background:#f9fafb; border-bottom:1px solid var(--border);">需要使用 User 账户登录才能监听群组消息。群组 ID 以 -100 开头。</p>
     <form id="addGroupForm" style="display:flex; flex-direction:column; height:100%;">
       <div class="modal-body">
         <div class="form-group"><label>群组 ID</label><input type="text" id="modalGroupId" required placeholder="-100xxxxxxxxx"></div>
@@ -167,6 +169,7 @@
       <h2>定时任务 (每日签到)</h2>
       <button class="close" onclick="closeScheduleModal()">&times;</button>
     </div>
+    <p style="margin:0; padding:0.5rem 1.5rem; font-size:0.8rem; color:var(--text-secondary); background:#f9fafb; border-bottom:1px solid var(--border);">设置定时发送消息，在指定时间段内随机发送。需要 User 账户登录。</p>
     <div class="modal-body" style="background: #f9fafb;">
       <div id="scheduleTaskList"></div>
       <button type="button" class="btn btn-secondary" onclick="addScheduleTask()" style="width: 100%; border-style:dashed;">+ 添加新任务</button>
@@ -185,6 +188,7 @@
       <h2>Web 订阅 (无需登录 无封号风险)</h2>
       <button class="close" onclick="closeScraperModal()">&times;</button>
     </div>
+    <p style="margin:0; padding:0.5rem 1.5rem; font-size:0.8rem; color:var(--text-secondary); background:#f9fafb; border-bottom:1px solid var(--border);">通过网页抓取公开频道内容，无需登录 Telegram 账户。</p>
     <div class="modal-body" style="background: #f9fafb;">
       <div style="background: #fff; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
         <div>
