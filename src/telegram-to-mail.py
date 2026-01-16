@@ -581,13 +581,17 @@ async def main():
         return
 
     # 情况 B: Client 初始化 (支持多种 Session 格式)
-    # 优先级: 1. SQLite文件(telegram.session) > 2. StringSession字符串(session.string)
+    # 优先级: 1. 环境变量SESSION_STRING(Base64) > 2. SQLite文件(telegram.session) > 3. StringSession文件(session.string)
     
-    # 检查 SQLite session 文件是否存在
-    session_file_path = storage.get_session_file_path()
-    saved_session_string = storage.load_data('session')
+    # 检查各种 session 来源
+    env_session_string = storage.get_session_from_env()  # 环境变量 (Base64)
+    session_file_path = storage.get_session_file_path()   # SQLite 文件
+    saved_session_string = storage.load_data('session')   # StringSession 文件
     
-    if session_file_path:
+    if env_session_string:
+        print("Using session from environment variable (SESSION_STRING)...")
+        client = TelegramClient(StringSession(env_session_string), int(api_id), api_hash)
+    elif session_file_path:
         print(f"Found SQLite session file: {session_file_path}. Using file-based session...")
         # 使用 SQLite 文件 session（不带 .session 后缀）
         session_name = session_file_path.replace('.session', '')

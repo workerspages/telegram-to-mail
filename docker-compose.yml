@@ -14,6 +14,11 @@ services:
       - API_ID=123456789                    # 可选：如果只用爬虫或Bot功能，可不填
       - API_HASH=123456789abcd              # 可选：如果只用爬虫或Bot功能，可不填
 
+      # 可选：通过环境变量传入 Session（适用于不支持文件上传的 PaaS 平台）
+      # 值为 session.string 文件内容的 Base64 编码
+      # 生成方法: base64 -w 0 session.string
+  #   - SESSION_STRING=MUJRQU5PVEUuMTA4...
+
       # 要启用 Cloudflare Tunnel 功能，请取消下面一行的注释，并粘贴您的 Token。
       # 如果此行被注释或值为空，则容器启动时不会启用 Tunnel 功能。
       # Cloudflare Tunnel 域名：https://xxxxxxxxxx-cloudflare-tunnel.com
