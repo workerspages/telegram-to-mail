@@ -269,22 +269,32 @@ async def handle_lottery_auto_reply(client, event, lottery_config, message_text)
 # --- 核心消息处理逻辑 ---
 async def process_notifications(config, notifiers_list, subject, body):
     """处理并发送一组通知"""
+    print(f"[Notify] Processing {len(notifiers_list)} notifiers: {notifiers_list}")
     for nid in notifiers_list:
         try:
+            print(f"[Notify] Processing notifier: {nid}")
             if nid.startswith('bark'):
                 bark_details = get_bark_details(config, nid)
                 if bark_details and bark_details.get('token'):
                     server_url = bark_details.get('server_url') or "https://api.day.app"
                     await send_bark(server_url, bark_details['token'], subject, body)
+                else:
+                    print(f"[Notify] Bark notifier '{nid}' not found in config")
 
             elif nid.startswith('pushplus'):
                 token = get_pushplus_token(config, nid)
                 if token:
                     await send_pushplus(token, subject, body)
+                else:
+                    print(f"[Notify] Pushplus notifier '{nid}' not found in config")
                     
             elif nid == "email":
                 if 'email' in config.get('notifiers', {}):
                     await send_email(config['notifiers']['email'], subject, body)
+                else:
+                    print(f"[Notify] Email notifier not configured")
+            else:
+                print(f"[Notify] Unknown notifier type: {nid}")
         except Exception as e:
             print(f"[ERROR] Failed to process notifier '{nid}'. Reason: {e}")
 
@@ -435,6 +445,8 @@ async def scraper_task_worker():
                                         msg_hash = hashlib.md5(latest_text.encode('utf-8')).hexdigest()
                                         last_hash = scraper_state.get(username)
                                         
+                                        print(f"[Scraper] @{username}: hash={msg_hash[:8]}..., last={last_hash[:8] if last_hash else 'None'}...")
+                                        
                                         if msg_hash != last_hash:
                                             print(f"[Scraper] New message found in @{username}")
                                             
@@ -442,6 +454,10 @@ async def scraper_task_worker():
                                             save_scraper_state(scraper_state)
                                             
                                             notifiers = channel.get('notifiers', [])
+                                            print(f"[Scraper] @{username} notifiers: {notifiers}")
+                                            
+                                            if not notifiers:
+                                                print(f"[Scraper] WARNING: No notifiers configured for @{username}")
                                             
                                             display_name = channel.get('name')
                                             if not display_name:
@@ -451,8 +467,9 @@ async def scraper_task_worker():
                                             body = f"{latest_text}\n\n(来源: Web Preview)"
                                             
                                             await process_notifications(config, notifiers, subject, body)
+                                            print(f"[Scraper] Notifications sent for @{username}")
                                     else:
-                                        pass
+                                        print(f"[Scraper] No messages found on page for @{username}")
                                 else:
                                     print(f"[Scraper] Failed to fetch {url}, status: {resp.status}")
 
